@@ -943,18 +943,20 @@
                 const self = this;
                 if(row.pic.length>2){
                     // window.open("/IntelligentAgriculture/patrolManage/loadImages?names="+row.pic)
-                    self.$.post("/IntelligentAgriculture/breedingLog/loadImages",{names:row.pic},function(data){
-                        data = JSON.parse(data);
-                        if(data.resCode == 1){
-                            if(data.res.length == 0){
-                                self.$message.info("暂无图片")
-                            }else{
-                                window.open(data.res)
-                            }
-                        }else if(data.resCode == 0){
-                            self.$message.error("获取图片失败")
-                        }
-                    })
+                    // self.$.post("/IntelligentAgriculture/breedingLog/loadImages",{names:row.pic},function(data){
+                    //     data = JSON.parse(data);
+                    //     // window.open(data)
+                    //     if(data.resCode == 1){
+                    //         if(data.res.length == 0){
+                    //             self.$message.info("暂无图片")
+                    //         }else{
+                    //             window.open(data)
+                    //         }
+                    //     }else if(data.resCode == 0){
+                    //         self.$message.error("获取图片失败")
+                    //     }
+                    // })
+                    window.open("/IntelligentAgriculture/breedingLog/loadImages?names="+row.pic)
                 }else{
                     self.$message.info("暂无图片")
                 }
