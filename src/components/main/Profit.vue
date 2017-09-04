@@ -351,6 +351,9 @@
           if(result.resCode == 1) {
             self.$message.success("计算成功");
             self.allHistoryListByPage
+          } else if (result.loginStatus == 0) {
+            window.location.href = location.origin + '#login';
+            return;
           } else {
             self.$message.error(result.msg);
           }
@@ -366,6 +369,9 @@
           let result = JSON.parse(res);
           if(result.resCode == 1) {
             self.$message.success("计算成功");
+          } else if (result.loginStatus == 0) {
+            window.location.href = location.origin + '#login';
+            return;
           } else {
             self.$message.error(result.msg);
           }
@@ -382,6 +388,9 @@
           let result = JSON.parse(res);
           if(result.resCode == 1) {
             self.$message.success("计算成功");
+          } else if (result.loginStatus == 0) {
+            window.location.href = location.origin + '#login';
+            return;
           } else {
             self.$message.error(result.msg);
           }
@@ -394,6 +403,9 @@
           let result = JSON.parse(res);
           if(result.resCode == 1) {
             self.$message.success("计算成功");
+          } else if (result.loginStatus == 0) {
+            window.location.href = location.origin + '#login';
+            return;
           } else {
             self.$message.error(result.msg);
           }
@@ -406,6 +418,9 @@
           let result = JSON.parse(res);
           if(result.resCode == 1) {
             self.$message.success("计算成功");
+          } else if (result.loginStatus == 0) {
+            window.location.href = location.origin + '#login';
+            return;
           } else {
             self.$message.error(result.msg);
           }
@@ -417,6 +432,9 @@
           let result = JSON.parse(res);
           if(result.resCode == 1) {
             self.benefitValue = result.res;
+          } else if (result.loginStatus == 0) {
+            window.location.href = location.origin + '#login';
+            return;
           }
         })
       },
@@ -433,6 +451,9 @@
             self.tabForm4.input_type_6 = result.res.input_type_6;
             self.tabForm4.input_type_7 = result.res.input_type_7;
             self.tabForm4.input_type_8 = result.res.input_type_8;
+          } else if (result.loginStatus == 0) {
+            window.location.href = location.origin + '#login';
+            return;
           }
         })
       },
@@ -446,6 +467,9 @@
           let result = JSON.parse(res);
           if(result.resCode == 1) {
             self.allHistoryList = result;
+          } else if (result.loginStatus == 0) {
+            window.location.href = location.origin + '#login';
+            return;
           }
         })
       },
@@ -456,6 +480,9 @@
           if(result.resCode == 1) {
             self.allHistoryList = result.res;
             console.log(self.allHistoryList);
+          } else if (result.loginStatus == 0) {
+            window.location.href = location.origin + '#login';
+            return;
           }
         })
       },
@@ -463,9 +490,12 @@
         const self = this;
         self.$.post("/IntelligentAgriculture/PondInfo/showPondinfos",{time: new Date()},function(res){
           let result = JSON.parse(res);
-          if(result.res.length > 0) {
+          if(result.resCode == 1 && result.res.length > 0) {
             self.tangKous = result.res;
             self.poundSelected(0);
+          } else if (result.loginStatus == 0) {
+            window.location.href = location.origin + '#login';
+            return;
           }
           //console.log(self.tangKous);
         })

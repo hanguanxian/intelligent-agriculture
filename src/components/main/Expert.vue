@@ -35,32 +35,52 @@
                                 <p class="nowrap">{{item.description}}</p>
                             </div>
                             <div class="btn_group">
-                                <a href="" class="ask" @click="askQuestion(item)">&nbsp;</a>
-                                <a href="" class="video">&nbsp;</a>
-                                <a href="" class="make">&nbsp;</a>
+                                <a href="#" class="ask" @click.stop.prevent="askQuestion(item)">&nbsp;</a>
+                                <a href="#" class="video" @click.stop.prevent="appointDate(item)">&nbsp;</a>
+                                <a href="#" class="make" @click.stop.prevent="appointDate(item)">&nbsp;</a>
                             </div>
                         </div>
                     </el-col>
                 </el-row>
                 <el-dialog title="提问" :visible.sync="questionDialogShow">
-                  <el-form ref="questionForm" :model="questionForm" label-width="80px">
-                    <el-form-item label="活动名称">
-                      <el-input v-model="questionForm.questionTitle"></el-input>
+                  <el-form ref="questionForm" :model="peerQuestionForm" label-width="120px">
+                    <el-form-item label="标题">
+                      <el-input v-model="peerQuestionForm.title" placeholder="请输入标题"></el-input>
                     </el-form-item>
 
-                    <el-form-item label="活动性质">
-                      <el-checkbox-group v-model="questionForm.contentType">
+                    <el-form-item label="类别">
+                      <el-checkbox-group v-model="peerQuestionForm.contentType">
                         <el-checkbox label="饲料喂养"></el-checkbox>
                         <el-checkbox label="水质环境"></el-checkbox>
                         <el-checkbox label="病害防治"></el-checkbox>
                       </el-checkbox-group>
                     </el-form-item>
-
-                    <el-form-item label="活动形式">
-                      <el-input type="textarea" v-model="questionForm.content"></el-input>
+                    <el-form-item label=“他人是否可见”>
+                      <el-radio class="radio" v-model="peerQuestionForm.visable" :label="1">是</el-radio>
+                      <el-radio class="radio" v-model="peerQuestionForm.visable" :label="0">否</el-radio>
+                    </el-form-item>
+                    <el-form-item label="描述">
+                      <el-input type="textarea" v-model="peerQuestionForm.content"></el-input>
                     </el-form-item>
                     <el-form-item>
-                      <el-button type="primary" @click="questionSubmit">提交</el-button>
+                      <el-button type="primary" @click="preQuestionSubmit">提交</el-button>
+                    </el-form-item>
+                  </el-form>
+                </el-dialog>
+                <el-dialog title="预约" :visible.sync="appointDialogShow">
+                  <el-form ref="questionForm" :model="appointForm" label-width="100px">
+                    <el-form-item label="日期">
+                      <el-date-picker v-model="appointForm.appointDate" type="date" placeholder="选择日期"></el-date-picker>
+                    </el-form-item>
+
+                    <el-form-item label="时间段">
+                      <el-time-picker is-range v-model="appointForm.timeRange" placeholder="选择时间端"></el-time-picker>
+                    </el-form-item>
+                    <el-form-item label="联系方式">
+                      <el-input v-model="appointForm.launchUserTel" placeholder="请输入联系方式"></el-input>
+                    </el-form-item>
+                    <el-form-item>
+                      <el-button type="primary" @click="appointSave">提交</el-button>
                     </el-form-item>
                   </el-form>
                 </el-dialog>
@@ -137,6 +157,22 @@
                   contentType: [],
                   content: ""
                 },
+                peerQuestionForm: {
+                  userName:"",
+                  expertUserName:"",
+                  title:"",
+                  contentType:[],
+                  visable:1,
+                  content:""
+                },
+                appointDialogShow: false,
+                appointForm: {
+                  userName:"",
+                  beInvitedUserName:"",
+                  appointDate:"",
+                  timeRange:[],
+                  launchUserTel:""
+                },
                 expertList:[],
                 newQuestionPage: 1,
                 hostQuestionPage: 1,
@@ -148,7 +184,49 @@
                 return val.length > 70 ? val.substring(0,70)+"..." : val
             },
             askQuestion(item){
-
+              const self = this;
+              self.questionDialogShow = true;
+              self.peerQuestionForm.expertUserName = item.personName;
+            },
+            appointDate(item){
+              const self = this;
+              self.appointDialogShow = true;
+              self.appointForm.beInvitedUserName = item.personName;
+            },
+            appointSave(){
+              const self = this;
+              self.appointForm.userName = localStorage.getItem('msuserName');
+              self.$.post("/IntelligentAgriculture/expert/appointSave",self.appointForm,function(res){
+                let result = JSON.parse(res);
+                self.questionDialogShow = false;
+                if(result.resCode == 1) {
+                  self.$message.success("提交成功");
+                } else if (result.loginStatus == 0) {
+                  window.location.href = location.origin + '#login';
+                  return;
+                } else {
+                  self.$message.error(result.msg);
+                }
+              })
+            },
+            preQuestionSubmit(){
+              const self = this;
+              self.peerQuestionForm.userName = localStorage.getItem('msuserName');
+              self.peerQuestionForm.startTime = self.peerQuestionForm.timeRange[0];
+              self.peerQuestionForm.endTime = self.peerQuestionForm.timeRange[1];
+              delete self.peerQuestionForm.timeRange;
+              self.$.post("/IntelligentAgriculture/expert/appointSave",self.peerQuestionForm,function(res){
+                let result = JSON.parse(res);
+                self.appointDialogShow = false;
+                if(result.resCode == 1) {
+                  self.$message.success("提交成功");
+                } else if (result.loginStatus == 0) {
+                  window.location.href = location.origin + '#login';
+                  return;
+                } else {
+                  self.$message.error(result.msg);
+                }
+              })
             },
             //获取专家列表
             getExpertList(){
@@ -157,6 +235,9 @@
                   let result = JSON.parse(res);
                   if(result.resCode == 1) {
                     self.expertList = result.res;
+                  } else if (result.loginStatus == 0) {
+                    window.location.href = location.origin + '#login';
+                    return;
                   } else {
                     self.$message.error(result.msg);
                   }
@@ -170,6 +251,9 @@
                   if(result.resCode == 1) {
                     self.newQuestions = result.res.newQuestionByPage;
                     console.log(result.res);
+                  } else if (result.loginStatus == 0) {
+                    window.location.href = location.origin + '#login';
+                    return;
                   } else {
                     self.$message.error(result.msg);
                   }
@@ -183,6 +267,9 @@
                 let result = JSON.parse(res);
                 if(result.resCode == 1) {
                   self.$message.success("提交成功");
+                } else if (result.loginStatus == 0) {
+                  window.location.href = location.origin + '#login';
+                  return;
                 } else {
                   self.$message.error(result.msg);
                 }
@@ -194,7 +281,9 @@
                   let result = JSON.parse(res);
                   if(result.resCode == 1) {
                     self.hostQuestions = result.res.hotQuestionByPage;
-                    console.log(result.res);
+                  } else if (result.loginStatus == 0) {
+                    window.location.href = location.origin + '#login';
+                    return;
                   } else {
                     self.$message.error(result.msg);
                   }
@@ -206,7 +295,7 @@
             self.getExpertList();
             self.getQsList();
             self.getHotQsList();
-;        }
+        }
     }
 </script>
 

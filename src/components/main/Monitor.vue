@@ -231,10 +231,16 @@
           //   {fid:5,cid:2,sid:'0910',order: '',name: '固城湖威森'},
           //   {fid:6,cid:2,sid:'0409',order: '',name: '实验室'},
           //   {fid:7,cid:2,sid:'0',order: '43',name: '江宁基地'}];
+          if(result.resCode == 1) {
             self.tangKous = result.res;
             self.tabName = self.tangKous[0].sendescription;
             self.tangKou = self.tangKous[0];
             self.dateTimeRange(60 * 60 * 24);
+          } else if (result.loginStatus == 0) {
+            window.location.href = location.origin + '#login';
+            return;
+          }
+
         })
       },
       tangKouSelect(tab, event){//塘口选择
@@ -271,6 +277,9 @@
             if(result.resCode){
               self.childTangKous = result.res;
               self.childTangKouSelect(0);
+            } else if (result.loginStatus == 0) {
+              window.location.href = location.origin + '#login';
+              return;
             }
           })
       },
@@ -283,30 +292,35 @@
         };
         self.$.post("/IntelligentAgriculture/dataDisplay/queryCurrentData",data,function(res){
           let result = JSON.parse(res);
-          for (var i = 0; i < result.res.length; i++) {
-            switch (result.res[i].type) {
-              case "water_temp_1":
-              case "water_temp_2":
-              case "temp":
-              case "temp_ws":
-                self.currentData.temperature = result.res[i].value || '';
-                break;
-              case "ph_1":
-              case "ph_2":
-              case "ph_ph":
-              case "ph":
-              case "ph_ws":
-                self.currentData.ph = result.res[i].value || '';
-                break;
-              case "do2_1":
-              case "do2_2":
-              case "do_do":
-              case "do_ws":
-              case "do2":
-                self.currentData.oxygen = result.res[i].value || '';
-                break;
-              default:
+          if(result.resCode){
+            for (var i = 0; i < result.res.length; i++) {
+              switch (result.res[i].type) {
+                case "water_temp_1":
+                case "water_temp_2":
+                case "temp":
+                case "temp_ws":
+                  self.currentData.temperature = result.res[i].value || '';
+                  break;
+                case "ph_1":
+                case "ph_2":
+                case "ph_ph":
+                case "ph":
+                case "ph_ws":
+                  self.currentData.ph = result.res[i].value || '';
+                  break;
+                case "do2_1":
+                case "do2_2":
+                case "do_do":
+                case "do_ws":
+                case "do2":
+                  self.currentData.oxygen = result.res[i].value || '';
+                  break;
+                default:
+              }
             }
+          } else if (result.loginStatus == 0) {
+            window.location.href = location.origin + '#login';
+            return;
           }
         })
       },
@@ -341,6 +355,9 @@
                 self.initSerie('水温',result.res.do_temp,2);
       				}
             }
+          } else if (result.loginStatus == 0) {
+            window.location.href = location.origin + '#login';
+            return;
           }
         })
       },
@@ -374,6 +391,9 @@
                 self.initSerie('水温',result.res.do_temp,2);
       				}
             }
+          } else if (result.loginStatus == 0) {
+            window.location.href = location.origin + '#login';
+            return;
           }
         })
       },

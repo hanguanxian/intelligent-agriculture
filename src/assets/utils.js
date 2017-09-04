@@ -11,7 +11,7 @@ const utils = {
             }
             return arr;
         }else{
-            return ""  
+            return ""
         }
     },
     //地区value数组 转value+label数组格式;
@@ -55,7 +55,13 @@ const utils = {
                 label:""
             }
         }
+    },
+    relogin(response){
+      if (response.loginStatus == 0) {
+        window.location.href = location.origin + '#login';
+        return;
+      }
     }
-    
+
 }
 module.exports = utils;

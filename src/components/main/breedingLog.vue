@@ -1,6 +1,6 @@
 <template>
     <div class="breedingLog">
-    
+
         <el-row class="actTheme" style="border-bottom:1px solid #9b9b9b;">
             <el-col :span="12" style="padding-top:20px;padding-bottom:60px;">
                 <el-form ref="form_daily" :rules="daily_rule" :model="form_daily" label-width="90px">
@@ -424,7 +424,7 @@
                 const self = this;
                 self.form_daily.goods.splice(index, 1);
             },
-    
+
             //获取当前用户塘口信息
             getPonds() {
                 const self = this;
@@ -438,6 +438,9 @@
                                 value: item.id
                             })
                         }
+                    }  else if (data.loginStatus == 0) {
+                      window.location.href = location.origin + '#login';
+                      return;
                     } else if (data.resCode == 0) {
                         self.$message.error('获取塘口信息失败');
                     }
@@ -457,10 +460,13 @@
                                 value: item.inputtype
                             })
                         }
+                    }  else if (data.loginStatus == 0) {
+                      window.location.href = location.origin + '#login';
+                      return;
                     } else if (data.resCode == 0) {
                         self.$message.error("获取类别信息失败")
                     }
-    
+
                 })
             },
             //获取巡检类别
@@ -579,7 +585,7 @@
                         value: "大量死亡"
                     },
                 ]
-    
+
                 function buweiState() {
                     return [{
                             label: "腐烂",
@@ -755,10 +761,13 @@
                                 }
                             }
                         }
+                    }  else if (data.loginStatus == 0) {
+                      window.location.href = location.origin + '#login';
+                      return;
                     } else if (data.resCode == 0) {
                         self.$message.error("获取巡检类别失败")
                     }
-    
+
                 })
             },
             //获取录入数据的类型
@@ -775,6 +784,9 @@
                                 range: item.range
                             })
                         }
+                    }  else if (data.loginStatus == 0) {
+                      window.location.href = location.origin + '#login';
+                      return;
                     } else if (data.resCode == 0) {
                         self.$message.error("获取数据类型失败")
                     }
@@ -818,6 +830,9 @@
                                     self.$message.success("提交成功!");
                                     self.getTableDate();
                                     self.resetForm(formName);
+                                }  else if (data.loginStatus == 0) {
+                                  window.location.href = location.origin + '#login';
+                                  return;
                                 } else if (data.resCode == 0) {
                                     self.$message.error("提交失败!")
                                 }
@@ -850,7 +865,7 @@
                         form.append("catalog", self.form_polling.selectData || 0);
                         form.append("ranges", self.form_polling.num || "");
                         self.form_polling.picList.length > 0 ? form.append("files", self.form_polling.picList[0]) : form.append("files", new File([""], ""));
-    
+
                         form.append("activeTime", self.form_polling.date.format("yyyy-MM-dd hh:mm:ss"));　
                         self.$.ajax({
                             url: "/IntelligentAgriculture/breedingLog/patrol",
@@ -864,6 +879,9 @@
                                     self.$message.success("提交成功!");
                                     self.getTableDate();
                                     self.resetForm(formName);
+                                }  else if (data.loginStatus == 0) {
+                                  window.location.href = location.origin + '#login';
+                                  return;
                                 } else if (data.resCode == 0) {
                                     self.$message.error("提交失败!")
                                 }
@@ -878,7 +896,7 @@
             resetForm(formName) {
                 this.$refs[formName].resetFields();
             },
-    
+
             //获取表格数据
             swithKind(tab) {
                 const self = this;
@@ -891,7 +909,7 @@
                     page: self.kind == 'throw' ? self.daily.curPage : self.polling.curPage,
                     kind: self.kind
                 }
-    
+
                 self.$.get("/IntelligentAgriculture/breedingLog/showMyLog", data, function(data) {
                     data = JSON.parse(data);
                     if (data.resCode == 1) {
@@ -929,6 +947,9 @@
                                 })
                             }
                         }
+                    }  else if (data.loginStatus == 0) {
+                      window.location.href = location.origin + '#login';
+                      return;
                     } else if (data.resCode == 0) {
                         self.$message.error("获取日志失败")
                     }
@@ -960,9 +981,9 @@
                 }else{
                     self.$message.info("暂无图片")
                 }
-                
+
             },
-    
+
             //导出表格内容
             exportTable(formName) {
                 const self = this;
@@ -1007,23 +1028,23 @@
         width: 300px;
         margin-right: 10px;
     }
-    
+
     .actTheme {
         position: relative;
     }
-    
+
     .btn_group {
         position: absolute;
         bottom: 0;
     }
-    
+
     .theme_title {
         width: 90px !important;
         font-size: 16px;
         font-weight: 600;
         color: #333;
     }
-    
+
     .boundary {
         position: absolute;
         top: 50%;
@@ -1033,7 +1054,7 @@
         height: 100%;
         background-color: #9b9b9b;
     }
-    
+
     .myDaily {
         display: flex;
         justify-content: space-between;
@@ -1042,7 +1063,7 @@
         font-size: 16px;
         font-weight: 600;
     }
-    
+
     .pagina {
         text-align: center;
         padding-top: 20px;

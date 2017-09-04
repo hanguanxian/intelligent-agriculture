@@ -297,7 +297,10 @@
                                 }
                             }
                         }
-                    }else if(data.resCode == 0){
+                    } else if (data.loginStatus == 0) {
+                      window.location.href = location.origin + '#login';
+                      return;
+                    } else if(data.resCode == 0){
                         self.$message.error("获取"+req.subKind+"信息失败")
                     }
                 })
@@ -308,13 +311,18 @@
                 self.$.get("/IntelligentAgriculture/product/productDetail",{productid:item.id},function(data){
                     data = JSON.parse(data);
                     // console.log(data);
-                    data.res.product.image  =  "http://210.28.188.103:8080/IntelligentAgriculture/res/"+data.res.product.image,
-                    data.res.disease.map((item)=>{ item.image = "http://210.28.188.103:8080/IntelligentAgriculture/res/"+item.image})
-                    self.proDetail.product = data.res.product;
-                    self.proDetail.breed = data.res.breed;
-                    self.proDetail.disease = data.res.disease;
-                    self.proDetailAct  = "product";
-                    self.showProDetail = true;
+                    if(data.resCode == 1){
+                      data.res.product.image  =  "http://210.28.188.103:8080/IntelligentAgriculture/res/"+data.res.product.image,
+                      data.res.disease.map((item)=>{ item.image = "http://210.28.188.103:8080/IntelligentAgriculture/res/"+item.image})
+                      self.proDetail.product = data.res.product;
+                      self.proDetail.breed = data.res.breed;
+                      self.proDetail.disease = data.res.disease;
+                      self.proDetailAct  = "product";
+                      self.showProDetail = true;
+                    } else if (data.loginStatus == 0) {
+                      window.location.href = location.origin + '#login';
+                      return;
+                    }
                 })
             },
             //获取饲料
@@ -323,13 +331,18 @@
                 self.$.get("/IntelligentAgriculture/product/feedList",req,function(data){
                     data = JSON.parse(data);
                     self.feedList = []
-                    for(const item of data.res){
-                        self.feedList.push({
-                            id:item.id,
-                            label:item.name,
-                            img:"http://210.28.188.103:8080/IntelligentAgriculture/res/"+item.image,
-                            content:item.manualinstruct
-                        })
+                    if(data.resCode == 1){
+                      for(const item of data.res){
+                          self.feedList.push({
+                              id:item.id,
+                              label:item.name,
+                              img:"http://210.28.188.103:8080/IntelligentAgriculture/res/"+item.image,
+                              content:item.manualinstruct
+                          })
+                      }
+                    } else if (data.loginStatus == 0) {
+                      window.location.href = location.origin + '#login';
+                      return;
                     }
                 })
             },
@@ -339,13 +352,18 @@
                 self.$.get("/IntelligentAgriculture/product/feedDetail",{productid:item.id},function(data){
                      data = JSON.parse(data);
                     //  console.log(data)
-                     self.feedDetail.name = data.res.name;
-                     self.feedDetail.company = data.res.company;
-                     self.feedDetail.tel = data.res.telphone;
-                     self.feedDetail.contact = data.res.contact;
-                     self.feedDetail.content = data.res.manualinstruct;
-                     self.feedDetail.img = "http://210.28.188.103:8080/IntelligentAgriculture/res/"+data.res.image
-                     self.showFeedDetail = true;
+                    if(data.resCode == 1){
+                       self.feedDetail.name = data.res.name;
+                       self.feedDetail.company = data.res.company;
+                       self.feedDetail.tel = data.res.telphone;
+                       self.feedDetail.contact = data.res.contact;
+                       self.feedDetail.content = data.res.manualinstruct;
+                       self.feedDetail.img = "http://210.28.188.103:8080/IntelligentAgriculture/res/"+data.res.image
+                       self.showFeedDetail = true;
+                     } else  if (data.loginStatus == 0) {
+                       window.location.href = location.origin + '#login';
+                       return;
+                     }
                 })
             },
 
@@ -355,13 +373,18 @@
                 self.$.get("/IntelligentAgriculture/product/drugList",req,function(data){
                     data = JSON.parse(data);
                     self.drugList = []
-                    for(const item of data.res){
-                        self.drugList.push({
-                            id:item.id,
-                            label:item.name,
-                            img:"http://210.28.188.103:8080/IntelligentAgriculture/res/"+item.image,
-                            content:item.manualinstruct
-                        })
+                    if(data.resCode == 1){
+                      for(const item of data.res){
+                          self.drugList.push({
+                              id:item.id,
+                              label:item.name,
+                              img:"http://210.28.188.103:8080/IntelligentAgriculture/res/"+item.image,
+                              content:item.manualinstruct
+                          })
+                      }
+                    } else if (data.loginStatus == 0) {
+                      window.location.href = location.origin + '#login';
+                      return;
                     }
                 })
             },
@@ -370,14 +393,19 @@
                 const self = this;
                 self.$.get("/IntelligentAgriculture/product/drugDetail",{productid:item.id},function(data){
                     data = JSON.parse(data);
-                    self.drugDetail.name = data.res.name;
-                    self.drugDetail.drugType = data.res.type;
-                    self.drugDetail.company = data.res.company;
-                    self.drugDetail.tel = data.res.telphone;
-                    self.drugDetail.contact = data.res.contact;
-                    self.drugDetail.content = data.res.manualinstruct;
-                    self.drugDetail.img = "http://210.28.188.103:8080/IntelligentAgriculture/res/"+data.res.image
-                    self.showDrugDetail = true;
+                    if(data.resCode == 1){
+                      self.drugDetail.name = data.res.name;
+                      self.drugDetail.drugType = data.res.type;
+                      self.drugDetail.company = data.res.company;
+                      self.drugDetail.tel = data.res.telphone;
+                      self.drugDetail.contact = data.res.contact;
+                      self.drugDetail.content = data.res.manualinstruct;
+                      self.drugDetail.img = "http://210.28.188.103:8080/IntelligentAgriculture/res/"+data.res.image
+                      self.showDrugDetail = true;
+                    } else if (data.loginStatus == 0) {
+                      window.location.href = location.origin + '#login';
+                      return;
+                    }
                 })
             },
             //获取种苗
@@ -388,6 +416,9 @@
                     //console.log('seed');
                     if(result.resCode == 1) {
                       self.seedList = result.res;
+                    } else if (result.loginStatus == 0) {
+                      window.location.href = location.origin + '#login';
+                      return;
                     }
                     //console.log(data)
                     // self.feedList = []
@@ -427,6 +458,9 @@
                         self.equipments = result.res;
                       }
 
+                    } else if (result.loginStatus == 0) {
+                      window.location.href = location.origin + '#login';
+                      return;
                     }
                     // self.feedList = []
                     // for(const item of data.res){

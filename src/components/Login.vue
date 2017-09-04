@@ -1,6 +1,6 @@
 <template>
     <el-row class="content">
-    <el-col :xs="24" :sm="{span: 4,offset: 8}">
+    <el-col :xs="24" :sm="{span: 8,offset: 8}">
         <h1 style="margin-bottom: 20px;"> {{ title }} </h1>
         <el-row v-show="!registerFlag">
           <el-form :model="loginForm" ref="loginForm" label-width="100px" :rules="loginRules">

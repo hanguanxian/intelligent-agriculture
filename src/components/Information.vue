@@ -199,7 +199,10 @@
                                 email:item.email
                             })
                         }
-                    }else if(data.resCode == 0){
+                    } else if (data.loginStatus == 0) {
+                      window.location.href = location.origin + '#login';
+                      return;
+                    } else if(data.resCode == 0){
                         self.$message.error('获取塘口信息失败');
                     }
                 })
@@ -234,7 +237,10 @@
                         self.form_pond.tel = pondinfo.tel;
                         self.form_pond.email = pondinfo.email;
                         console.log(self.form_pond)
-                    }else if(data.resCode == 0){
+                    }  else if (data.loginStatus == 0) {
+                      window.location.href = location.origin + '#login';
+                      return;
+                    } else if(data.resCode == 0){
                         self.$message.error('获取塘口信息失败');
                     }
 
@@ -257,7 +263,10 @@
                         if(data.resCode == 1){
                             self.$message.success("删除成功!")
                             self.getPonds();
-                        }else if(data.resCode == 0){
+                        } else if (data.loginStatus == 0) {
+                          window.location.href = location.origin + '#login';
+                          return;
+                        } else if(data.resCode == 0){
                             self.$message.error('无法删除，关联该水塘的数据正在被使用！');
                         }
                     })
@@ -291,7 +300,10 @@
                                 self.$message.success("新增塘口成功!");
                                 self.getPonds();
                                 self.resetForm(formName)
-                            }else if(data.resCode == 0){
+                            } else if (data.loginStatus == 0) {
+                              window.location.href = location.origin + '#login';
+                              return;
+                            } else if(data.resCode == 0){
                                 self.$message.error("新增塘口失败!")
                             }
                         })
@@ -328,7 +340,10 @@
                                 self.$message.success("修改塘口信息成功!");
                                 self.getPonds();
                                 self.resetForm(formName)
-                            }else if(data.resCode == 0){
+                            } else if (data.loginStatus == 0) {
+                              window.location.href = location.origin + '#login';
+                              return;
+                            } else if(data.resCode == 0){
                                 self.$message.error("修改塘口信息失败!")
                             }
                         })
