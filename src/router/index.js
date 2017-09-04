@@ -34,6 +34,10 @@ export default new Router({
           component: resolve => require(['@/components/main/Expert.vue'], resolve),
         },
         {
+          path: "vedio",
+          component: resolve => require(['@/components/main/OnlineVedio.vue'], resolve),
+        },
+        {
           path: "knowledge",
           component: resolve => require(['@/components/main/Knowledge.vue'], resolve),
         }
@@ -78,8 +82,8 @@ export default new Router({
 //     path:'/knowledge',
 //     component: resolve => require(['@/components/Knowledge.vue'], resolve),
 // children:[
-//   { 
-//     path: '', 
+//   {
+//     path: '',
 //     redirect:'product'
 //   },
 //   {

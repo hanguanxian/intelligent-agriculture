@@ -36,7 +36,7 @@
                             </div>
                             <div class="btn_group">
                                 <a href="#" class="ask" @click.stop.prevent="askQuestion(item)">&nbsp;</a>
-                                <a href="#" class="video" @click.stop.prevent="appointDate(item)">&nbsp;</a>
+                                <router-link :to="{path: '/main/vedio',query:{friendName: item.userName}}" class="video">&nbsp;</router-link>
                                 <a href="#" class="make" @click.stop.prevent="appointDate(item)">&nbsp;</a>
                             </div>
                         </div>
@@ -196,6 +196,9 @@
             appointSave(){
               const self = this;
               self.appointForm.userName = localStorage.getItem('msuserName');
+              self.peerQuestionForm.startTime = self.appointForm.timeRange[0];
+              self.peerQuestionForm.endTime = self.appointForm.timeRange[1];
+              delete self.peerQuestionForm.timeRange;
               self.$.post("/IntelligentAgriculture/expert/appointSave",self.appointForm,function(res){
                 let result = JSON.parse(res);
                 self.questionDialogShow = false;
@@ -212,10 +215,8 @@
             preQuestionSubmit(){
               const self = this;
               self.peerQuestionForm.userName = localStorage.getItem('msuserName');
-              self.peerQuestionForm.startTime = self.peerQuestionForm.timeRange[0];
-              self.peerQuestionForm.endTime = self.peerQuestionForm.timeRange[1];
-              delete self.peerQuestionForm.timeRange;
-              self.$.post("/IntelligentAgriculture/expert/appointSave",self.peerQuestionForm,function(res){
+
+              self.$.post("/IntelligentAgriculture/expert/peerQuestionSave",self.peerQuestionForm,function(res){
                 let result = JSON.parse(res);
                 self.appointDialogShow = false;
                 if(result.resCode == 1) {

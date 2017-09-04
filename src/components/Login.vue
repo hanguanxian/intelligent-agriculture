@@ -142,11 +142,14 @@
         }
       }
     },
-  methods:{
-    formChange(){
+    created() {
+      localStorage.removeItem("msuserName");
+    },
+    methods:{
+     formChange(){
       this.registerFlag = !this.registerFlag;
       this.title = this.register ? "用户注册" : "用户登录";
-    },
+     },
     login() {
       const self = this;
       self.$refs.loginForm.validate((valid) => {
@@ -160,10 +163,6 @@
                 self.$message.error('用户名或密码错误');
      					}
  				   })
-          // self.$axios.post(self.loginUrl, self.loginForm).then((res) => {
-          //   console.log(res);
-          //   localStorage.setItem('msuserName',self.loginForm.userName);
-          // });
         }
       });
     },
