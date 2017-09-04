@@ -1,7 +1,7 @@
 <template>
 <div class="container">
-  <el-row>
-    <el-col :span="3" :offset="1"><img :src="'http://210.28.188.103:8080/IntelligentAgriculture/res/'+ userInfo.headImg" style="width: 100%;"></el-col>
+  <el-row style="margin: 20px auto; width: 1000px;">
+    <el-col :span="3"><img :src="'http://210.28.188.103:8080/IntelligentAgriculture/res/'+ userInfo.headImg" style="width: 100%;"></el-col>
     <el-col :span="20">
       <el-col :span="10" class="userInfo">{{ '姓名:' + userInfo.personName }}</el-col>
       <el-col :span="14" class="userInfo">{{ '邮件:' + userInfo.email }}</el-col>
@@ -9,13 +9,14 @@
       <el-col :span="14" class="userInfo">{{ '技术特长:' + userInfo.category }}</el-col>
       <el-col :span="10" class="userInfo">{{ '职位:' + userInfo.professional }}</el-col>
     </el-col>
+    <el-row>
+      <el-col :span="22">
+        <div style="margin: 10px 0;">简介：</div>
+        <div>&nbsp;&nbsp;{{ userInfo.description }}</div>
+      </el-col>
+    </el-row>
   </el-row>
-  <el-row>
-    <el-col :span="22" :offset="1">
-      <div style="margin: 10px 0;">简介：</div>
-      <div>&nbsp;&nbsp;{{ userInfo.description }}</div>
-    </el-col>
-  </el-row>
+
   <el-row>
     <div style="margin: 15px auto; width: 840px;">
       <el-col :span="11" id="remote-user" class="videoWrapeer" style="background-image:url('../../../static/images/vedio/vedio1.png')"></el-col>
@@ -57,10 +58,10 @@
       <div id="info">
         <div id="white_board">
           <div id="menu" class="drawController" v-show="toolBarVisible" style="display: block;border-radius: 0 10px 10px 0;">
-            <span onclick="draw_graph('pencil',this)"><img src="../../../static/images/vedio/tools_pencil.png"></span>
-            <span onclick="draw_graph('square',this)" class="marginTop"><img src="../../../static/images/vedio/tools_rectangle.png"  ></span>
-            <span onclick="draw_graph('line',this);" class="marginTop"><img src="../../../static/images/vedio/tools_line.png"  ></span>
-            <span onclick="draw_graph('rubber',this)" class="marginTop"><img src="../../../static/images/vedio/tools_ruber.png" /></span>
+            <span @click="draw_graph('pencil',this)"><img src="../../../static/images/vedio/tools_pencil.png"></span>
+            <span @click="draw_graph('square',this)" class="marginTop"><img src="../../../static/images/vedio/tools_rectangle.png"  ></span>
+            <span @click="draw_graph('line',this);" class="marginTop"><img src="../../../static/images/vedio/tools_line.png"  ></span>
+            <span @click="draw_graph('rubber',this)" class="marginTop"><img src="../../../static/images/vedio/tools_ruber.png" /></span>
             <span onclick="clearContext('1',this)"><img src="../../../static/images/vedio/tools_lajitong.png"  ></span>
             <span id="show-file"><img src="../../../static/images/vedio/tools_showfile.png" ></span>
             <span id="pre-page"><img src="../../../static/images/vedio/tools_pre_page.png" ></span>
@@ -81,8 +82,8 @@
       </div>
 
 
-      <div id="chat-div" style="min-height: 200px;border:1px solid #333;border-radius: 10px;margin:10px;text-align: center;background: #333;">
-        <el-input v-model="chat" placeholder="请输入内容"></el-input>
+      <div id="chat-div" style="border:1px solid #333;border-radius: 10px;margin:10px;text-align: center;background: #9B9B9B;">
+        <el-input v-model="chat" style="width: 90%; margin: 10px auto;" placeholder="请输入内容"></el-input>
         <!-- <input type="text" id="input-text-chat" style="height:40px;width:90%;border:1px solid #39c;font-size:20px;color:deeppink;background:rgba(0,0,0,0.1);margin-top:10px;border-radius: 10px;" placeholder="Enter Text Chat" disabled> -->
         <div class="chat-output" style="line-height: 24px;font-size:20px;color:#000;background:#39c;">
         </div>
@@ -94,7 +95,7 @@
 </template>
 
 <script>
-
+//require("../../../static/socket/draw.js");
 export default {
   data() {
     return {
@@ -104,7 +105,14 @@ export default {
       socket: {},
       predefinedRoomId: "",
       owner: "",
-      chat: ""
+      chat: "",
+      traceStr: "",
+      copyContext: "",
+      drawContext: "",
+      pdfContext: "",
+      pdfCanvas: "",
+      copyCanvas: "",
+      drawCanvas: ""
     }
   },
   methods: {
@@ -148,7 +156,160 @@ export default {
             self.connection.leave();
         }
     },
+    draw_graph(graphType, obj) {
+      const self = this;
+        self.$("#viewFront").css("z-index", "8");
+        var canDraw = false;
+        var startX;
+        var startY;
+        self.traceStr = "";
+        var mousedown = function (e) {
+            preScale = scale;
+            self.drawContext.strokeStyle = color;
+            self.drawContext.lineWidth = size;
+            e = e || window.event;
+            canDraw = true;
+            startX = e.offsetX;
+            startY = e.offsetY;
 
+            if (graphType == 'pencil') {
+
+                self.traceStr  = "copyContext.beginPath();";
+                self.traceStr  += "copyContext.moveTo(" + startX/preScale+"*scale"+ "," + startY/preScale+"*scale" + ");";
+
+                self.drawContext.beginPath();
+                self.drawContext.moveTo(startX/preScale+"*scale", startY/preScale+"*scale");
+
+
+            } else if (graphType == 'line') {
+
+                self.copyContext.strokeStyle = color;
+                self.copyContext.lineWidth = size;
+            } else if (graphType == 'rubber') {
+                self.copyContext.clearRect(startX - size * 10, startY - size * 10, size * 20, size * 20);
+                self.traceStr  += "copyContext.clearRect(" + startX/preScale+"*scale" + "-" + size + "*10," + startY + "-" + size + "*10," + size + "*20," + size + "*20);";
+            }
+        }
+
+        var mousemove = function (e) {
+            var x = e.offsetX;
+            var y = e.offsetY;
+
+            if (graphType == 'square') {
+                if (canDraw) {
+                    self.drawContext.beginPath();
+                    clearContext();
+                    self.drawContext.moveTo(startX, startY);
+
+                    self.drawContext.lineTo(x, startY);
+
+                    self.drawContext.lineTo(x, y);
+                    self.drawContext.lineTo(startX, y);
+                    self.drawContext.lineTo(startX, startY);
+                    self.drawContext.stroke();
+
+                    self.traceStr  =
+                        "clearContext();" +
+                        " copyContext.beginPath();" +
+                        "copyContext.moveTo(" + startX/preScale+"*scale" + "," + startY/preScale+"*scale" + ");" +
+                        "copyContext.lineTo(" + x/preScale+"*scale" + "," + startY/preScale+"*scale" + ");" +
+                        "copyContext.lineTo(" + x/preScale+"*scale" + "," + y/preScale+"*scale" + ");" +
+                        "copyContext.lineTo(" + startX/preScale+"*scale" + "," + y/preScale+"*scale" + ");" +
+                        "copyContext.lineTo(" + startX/preScale+"*scale" + "," + startY/preScale+"*scale" + ");" +
+                        "copyContext.stroke();";
+                }
+            } else if (graphType == 'line') {
+                if (canDraw) {
+                    clearContext();
+                    self.drawContext.beginPath();
+                    self.drawContext.moveTo(startX, startY);
+                    self.drawContext.lineTo(x, y);
+                    self.drawContext.stroke();
+
+                    self.traceStr  =
+                        " clearContext();" +
+                        "copyContext.beginPath();" +
+                        "copyContext.moveTo(" + startX/preScale+"*scale" + "," + startY/preScale+"*scale" + ");" +
+                        "copyContext.lineTo(" + x/preScale+"*scale" + "," + y/preScale+"*scale" + ");" +
+                        "copyContext.stroke();"
+
+                }
+            } else if (graphType == 'pencil') {
+                if (canDraw) {
+                    //console.log("pencil x,y");
+                    //console.log(x+","+y);
+                    self.drawContext.lineTo(x, y);
+                    self.drawContext.stroke();
+                    self.traceStr  += "copyContext.lineTo(" + x/preScale+"*scale" + "," + y/preScale+"*scale" + ");";
+                    self.traceStr  += "copyContext.stroke();";
+
+                }
+            } else if (graphType == 'rubber') {
+                clearContext();
+                self.drawContext.lineWidth = 1;
+                self.drawContext.beginPath();
+                self.drawContext.strokeStyle = "#000000";
+                self.drawContext.moveTo(x - size * 10, y - size * 10);
+                self.drawContext.lineTo(x + size * 10, y - size * 10);
+                self.drawContext.lineTo(x + size * 10, y + size * 10);
+                self.drawContext.lineTo(x - size * 10, y + size * 10);
+                self.drawContext.lineTo(x - size * 10, y - size * 10);
+                self.drawContext.stroke();
+                if (canDraw) {
+                    self.drawContext.clearRect(x - size * 10, y - size * 10, size * 20, size * 20);
+                    self.traceStr  += "copyContext.clearRect(" + x/preScale+"*scale" + "-" + "size * 10," + y + " -" + " size * 10, size * 20, size * 20);";
+
+                }
+
+            }
+        };
+
+        var mouseup = function (e) {
+            e = e || window.event;
+
+            self.traceStr  = "copyContext.strokeStyle = \'" + color + "\';" + "copyContext.lineWidth = " + size + ";" + self.traceStr ;
+
+            canDraw = false;
+
+            /*不考虑撤销操作：20170703miaolijuan
+            copyContext.clearRect(0, 0, copyCanvas.width, copyCanvas.height);
+            traceArray[index] = self.traceStr ;
+            index++;
+            for (var i = 0; i < index; i++) {
+                eval(traceArray[i]);
+
+            }*/
+           eval(traceStr);
+
+            //saveTrace();
+
+            console.log("sendtest...");
+            connection.send({
+                    isMessage: true,
+                    toRun: true,
+                    data: traceStr
+                });
+            //traceStr = "";
+        };
+
+        var mouseover = function () {
+            self.$(self.drawCanvas).css('cursor', 'crosshair');
+        }
+
+        //选择功能按钮 修改样式
+        function chooseImg(obj) {
+            self.$(obj).addClass("border_choose");
+            self.$(obj).siblings('span').removeClass("border_choose");
+
+        }
+
+        self.$(self.drawCanvas).unbind();
+        self.$(self.drawCanvas).bind('mousedown', mousedown);
+        self.$(self.drawCanvas).bind('mousemove', mousemove);
+        self.$(self.drawCanvas).bind('mouseup', mouseup);
+        self.$(self.drawCanvas).bind('mouseover', mouseover);
+
+    }
   },
   created() {
     const self = this;
@@ -202,13 +363,13 @@ export default {
               if(event.data.chat){
                   appendDIV(event.data.data);
               }else if(event.data.toRun){            //主要处理白板上的画图工具
-                  var receivetraceStr = event.data.data;
+                  var receivetraceStr  = event.data.data;
                   eval(receivetraceStr);
-                  traceStr = receivetraceStr;
+                  self.traceStr = receivetraceStr;
                   saveTrace();
               }else if(event.data.clearDraw){
-                  drawContext.clearRect(0, 0, canvasWidth, canvasHeight);
-                  copyContext.clearRect(0, 0, canvasWidth, canvasHeight);
+                  self.drawContext.clearRect(0, 0, canvasWidth, canvasHeight);
+                  self.copyContext.clearRect(0, 0, canvasWidth, canvasHeight);
                   indexArray[pageNum - 1] = index = 0;
                   traceArray = [];
                   tolArray[pageNum - 1] = traceArray;
@@ -278,6 +439,24 @@ export default {
         self.closeVideo();
       });
       self.socket = socket;
+
+
+  },
+  mounted(){
+    self.pdfCanvas = document.getElementById("viewBack");
+    self.pdfContext = self.pdfCanvas.getContext("2d");
+    self.copyCanvas = document.getElementById("viewMiddle");
+    self.copyContext = self.copyCanvas.getContext("2d");
+    self.drawCanvas = document.getElementById("viewFront");
+    self.drawContext = self.drawCanvas.getContext("2d");
+    var traceArray = new Array();//数组代表当前页执行的所有操作，每个元素代表执行的每一步操作
+    var tolArray = new Array();//数组代表所有页执行的所有操作，每个元素代表第n页执行的所欲操作，每个元素由traceArray组成
+    var indexArray = new Array();//数组代表当前页执行的步数，每个元素代表当前页执行的第几步
+    var size = 1;
+    var color = "#FF0000";
+    var canvasWidth = 840;
+    var canvasHeight = 600;
+    var index = 0;
   }
 }
 </script>
