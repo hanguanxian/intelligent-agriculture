@@ -83,9 +83,10 @@
 
 
       <div id="chat-div" style="border:1px solid #333;border-radius: 10px;margin:10px;text-align: center;background: #9B9B9B;">
-        <el-input v-model="chat" style="width: 90%; margin: 10px auto;" placeholder="请输入内容"></el-input>
+        <el-input v-model="chat" style="width: 90%; margin: 10px auto;" placeholder="请输入内容" @:keyup.enter="sendMsg"></el-input>
         <!-- <input type="text" id="input-text-chat" style="height:40px;width:90%;border:1px solid #39c;font-size:20px;color:deeppink;background:rgba(0,0,0,0.1);margin-top:10px;border-radius: 10px;" placeholder="Enter Text Chat" disabled> -->
         <div class="chat-output" style="line-height: 24px;font-size:20px;color:#000;background:#39c;">
+          <div v-for="(chats, index) in allChat">{{ chats }}</div>
         </div>
       </div>
 
@@ -106,6 +107,7 @@ export default {
       predefinedRoomId: "",
       owner: "",
       chat: "",
+      allChat: [],
       traceStr: "",
       copyContext: "",
       drawContext: "",
@@ -141,6 +143,18 @@ export default {
         }
       })
     },
+    sendMsg(){
+      const self = this;
+        self.chat = self.chat.replace(/^\s+|\s+$/g, '');
+        if (!self.chat.length) return;
+        self.connection.send({
+            isMessage: true,
+            chat: true,
+            data: self.chat
+        });
+        self.allChat.push(self.chat);
+        self.value = '';
+    },
     startVideo(){
       const self = this;
         //disableInputButtons();
@@ -164,8 +178,6 @@ export default {
             self.connection.leave();
         }
     },
-
-
      saveTrace(){
        const self = this;
         self.traceArray[self.index] = self.traceStr;//traceStr代表每一次划线动作，traceArray代表当前页做的所有动作语句
@@ -335,7 +347,7 @@ export default {
                     toRun: true,
                     data: traceStr
                 });
-        };
+        }
 
         var mouseover = function () {
             self.$(self.drawCanvas).css('cursor', 'crosshair');
