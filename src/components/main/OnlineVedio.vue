@@ -83,7 +83,7 @@
 
 
       <div id="chat-div" style="border:1px solid #333;border-radius: 10px;margin:10px;text-align: center;background: #9B9B9B;">
-        <input v-model="chat" id="input-text-chat" placeholder="请输入内容" v-on:keyup.enter="sendMsg"/>
+        <input v-model="chat" id="input-text-chat" placeholder="请输入内容" v-on:keyup.enter="sendMsg" />
         <!-- <input type="text" id="input-text-chat" style="height:40px;width:90%;border:1px solid #39c;font-size:20px;color:deeppink;background:rgba(0,0,0,0.1);margin-top:10px;border-radius: 10px;" placeholder="Enter Text Chat" disabled> -->
         <div class="chat-output" style="line-height: 24px;font-size:20px;color:#000;background:#39c;">
           <div v-for="(chats, index) in allChat" class="chatList">{{ chats }}</div>
@@ -116,12 +116,12 @@ export default {
       drawCanvas: "",
       canvasWidth: 840,
       canvasHeight: 600,
-      traceArray: [],//数组代表当前页执行的所有操作，每个元素代表执行的每一步操作
-      tolArray: [],//数组代表所有页执行的所有操作，每个元素代表第n页执行的所欲操作，每个元素由traceArray组成
-      indexArray: [],//数组代表当前页执行的步数，每个元素代表当前页执行的第几步
+      traceArray: [], //数组代表当前页执行的所有操作，每个元素代表执行的每一步操作
+      tolArray: [], //数组代表所有页执行的所有操作，每个元素代表第n页执行的所欲操作，每个元素由traceArray组成
+      indexArray: [], //数组代表当前页执行的步数，每个元素代表当前页执行的第几步
       index: 0,
-      color:"#FF0000",
-      canDraw:false,
+      color: "#000",
+      canDraw: false,
       pageNum: 1
     }
   },
@@ -143,211 +143,209 @@ export default {
         }
       })
     },
-    sendMsg(){
+    sendMsg() {
       const self = this;
-        self.chat = self.chat.replace(/^\s+|\s+$/g, '');
-        if (!self.chat.length) return;
+      self.chat = self.chat.replace(/^\s+|\s+$/g, '');
+      if (!self.chat.length) return;
+      self.connection.send({
+        isMessage: true,
+        chat: true,
+        data: self.chat
+      });
+      self.allChat.push(self.chat);
+      self.chat = '';
+    },
+    startVideo() {
+      const self = this;
+      //disableInputButtons();
+      var roomInfo = {
+        owner: self.owner,
+        roomid: self.predefinedRoomId,
+        toUser: self.$route.query.friendName
+      };
+      console.log(roomInfo);
+      self.connection.open(self.predefinedRoomId, function() {
+        self.socket.emit('inviteVideo', roomInfo);
+      });
+    },
+    closeVideo() {
+      const self = this;
+      self.connection.isInitiator = true;
+      if (self.connection.isInitiator) {
+        self.connection.closeEntireSession(function() {
+          //document.querySelector('h1').innerHTML = 'Entire session has been closed.';
+        });
+      } else {
+        self.connection.leave();
+      }
+    },
+    saveTrace() {
+      const self = this;
+      self.traceArray[self.index] = self.traceStr; //traceStr代表每一次划线动作，traceArray代表当前页做的所有动作语句
+      self.index++;
+      self.indexArray[self.pageNum - 1] = self.index; //indexArray代表第self.pageNum 页画了多少步。除了pdf文件，该数组仅一个元素代表当前页执行了多少步，等同于index
+      self.tolArray[self.pageNum - 1] = self.traceArray; //tolArray代表第pageNum页上所有画图动作语句。除了pdf文件，该数组仅一个元素代表当前页执行的所有动作，等同于traceArray
+    },
+    jumpPageInitial() {
+      const self = this;
+      if (CURRENT_FILE_TYPE_ON_CANVAS === 'PDF') {
+        //canDraw = true;
+        //pdf文件翻转到下一页的分情况处理，到下一页是index初始化为0
+        if (!self.indexArray[self.pageNum - 1]) {
+          self.index = 0;
+          self.traceArray = [];
+        } else {
+          self.index = self.indexArray[self.pageNum - 1];
+          self.traceArray = self.tolArray[self.pageNum - 1];
+          if (self.index != traceArray.length) {
+            for (var j = self.index; j < traceArray.length; j++)
+              self.traceArray[j] = "";
+          }
+        }
+      }
+    },
+    clearContext(type, obj) {
+      const self = this;
+      if (!type) {
+        self.drawContext.clearRect(0, 0, self.canvasWidth, self.canvasHeight);
+      } else {
+        self.drawContext.clearRect(0, 0, self.canvasWidth, self.canvasHeight);
+        self.copyContext.clearRect(0, 0, self.canvasWidth, self.canvasHeight);
         self.connection.send({
-            isMessage: true,
-            chat: true,
-            data: self.chat
+          isMessage: true,
+          clearDraw: true
         });
-        self.allChat.push(self.chat);
-        self.chat = '';
-    },
-    startVideo(){
-      const self = this;
-        //disableInputButtons();
-        var roomInfo = {
-            owner: self.owner,
-            roomid: self.predefinedRoomId,
-            toUser: self.$route.query.friendName
-        };
-        self.connection.open(self.predefinedRoomId, function() {
-            self.socket.emit('inviteVideo',roomInfo);
-        });
-    },
-    closeVideo(){
-      const self = this;
-        self.connection.isInitiator=true;
-        if(self.connection.isInitiator) {
-            self.connection.closeEntireSession(function() {
-                //document.querySelector('h1').innerHTML = 'Entire session has been closed.';
-            });
-        } else {
-            self.connection.leave();
-        }
-    },
-    saveTrace(){
-       const self = this;
-        self.traceArray[self.index] = self.traceStr;//traceStr代表每一次划线动作，traceArray代表当前页做的所有动作语句
-        self.index++;
-        self.indexArray[self.pageNum - 1] = self.index;//indexArray代表第self.pageNum 页画了多少步。除了pdf文件，该数组仅一个元素代表当前页执行了多少步，等同于index
-        self.tolArray[self.pageNum - 1] = self.traceArray;//tolArray代表第pageNum页上所有画图动作语句。除了pdf文件，该数组仅一个元素代表当前页执行的所有动作，等同于traceArray
-    },
-    jumpPageInitial(){
-      const self = this;
-        if(CURRENT_FILE_TYPE_ON_CANVAS === 'PDF')
-        {
-            //canDraw = true;
-            //pdf文件翻转到下一页的分情况处理，到下一页是index初始化为0
-            if (!self.indexArray[self.pageNum - 1] )
-            {   self.index = 0;
-                self.traceArray = [];
-            } else
-            {
-                self.index = self.indexArray[self.pageNum - 1];
-                self.traceArray = self.tolArray[self.pageNum - 1];
-                if (self.index != traceArray.length) {
-                    for (var j = self.index; j < traceArray.length; j++)
-                        self.traceArray[j] = "";
-                }
-            }
-        }
-    },
-    clearContext (type, obj) {
-      const self = this;
-        if (!type) {
-            self.drawContext.clearRect(0, 0, self.canvasWidth, self.canvasHeight);
-        } else {
-            self.drawContext.clearRect(0, 0, self.canvasWidth, self.canvasHeight);
-            self.copyContext.clearRect(0, 0, self.canvasWidth, self.canvasHeight);
-            self.connection.send({
-                isMessage: true,
-                clearDraw: true
-            });
-            self.traceStr = "";
-            self.indexArray[self.pageNum - 1] = self.index = 0;
-            self.traceArray = [];
-            self.tolArray[self.pageNum - 1] = self.traceArray;
-            self.$(obj).siblings('span').removeClass("border_choose");
-        }
+        self.traceStr = "";
+        self.indexArray[self.pageNum - 1] = self.index = 0;
+        self.traceArray = [];
+        self.tolArray[self.pageNum - 1] = self.traceArray;
+        self.$(obj).siblings('span').removeClass("border_choose");
+      }
     },
     draw_graph(graphType) {
       const self = this;
       var size = 1;
 
-        self.$("#viewFront").css("z-index", "8");
-        var startX;
-        var startY;
-        self.traceStr = "";
-        chooseImg(graphType);
-        var mousedown = function (e) {
-            preScale = scale;
-            self.drawContext.strokeStyle = self.color;
-            self.drawContext.lineWidth = size;
-            e = e || window.event;
-            self.canDraw = true;
-            startX = e.offsetX;
-            startY = e.offsetY;
-            if (graphType == 'pencil') {
-              self.traceStr = "self.copyContext.beginPath();";
-            self.traceStr += "self.copyContext.moveTo(" + startX/preScale+"*scale"+ "," + startY/preScale+"*scale" + ");";
+      self.$("#viewFront").css("z-index", "8");
+      var startX;
+      var startY;
+      self.traceStr = "";
+      chooseImg(graphType);
+      var mousedown = function(e) {
+        preScale = scale;
+        self.drawContext.strokeStyle = self.color;
+        self.drawContext.lineWidth = size;
+        e = e || window.event;
+        self.canDraw = true;
+        startX = e.offsetX;
+        startY = e.offsetY;
+        if (graphType == 'pencil') {
+          self.traceStr = "self.copyContext.beginPath();";
+          self.traceStr += "self.copyContext.moveTo(" + startX / preScale + "*scale" + "," + startY / preScale + "*scale" + ");";
 
-                self.drawContext.beginPath();
-                self.drawContext.moveTo(startX/preScale+"*scale", startY/preScale+"*scale");
-            } else if (graphType == 'line') {
-                self.copyContext.strokeStyle = self.color;
-                self.copyContext.lineWidth = size;
-            } else if (graphType == 'rubber') {
-                self.copyContext.clearRect(startX - size * 10, startY - size * 10, size * 20, size * 20);
-                self.traceStr  += "self.copyContext.clearRect(" + startX/preScale+"*scale" + "-" + size + "*10," + startY + "-" + size + "*10," + size + "*20," + size + "*20);";
-            }
+          self.drawContext.beginPath();
+          self.drawContext.moveTo(startX / preScale + "*scale", startY / preScale + "*scale");
+        } else if (graphType == 'line') {
+          self.copyContext.strokeStyle = self.color;
+          self.copyContext.lineWidth = size;
+        } else if (graphType == 'rubber') {
+          self.copyContext.clearRect(startX - size * 10, startY - size * 10, size * 20, size * 20);
+          self.traceStr += "self.copyContext.clearRect(" + startX / preScale + "*scale" + "-" + size + "*10," + startY + "-" + size + "*10," + size + "*20," + size + "*20);";
         }
+      }
 
-        var mousemove = function (e) {
-            var x = e.offsetX;
-            var y = e.offsetY;
+      var mousemove = function(e) {
+        var x = e.offsetX;
+        var y = e.offsetY;
 
-            if (graphType == 'square') {
-                if (self.canDraw) {
-                    self.drawContext.beginPath();
-                    self.clearContext();
-                    self.drawContext.moveTo(startX, startY);
-                    self.drawContext.lineTo(x, startY);
-                    self.drawContext.lineTo(x, y);
-                    self.drawContext.lineTo(startX, y);
-                    self.drawContext.lineTo(startX, startY);
-                    self.drawContext.stroke();
-                    self.traceStr  =
-                        "self.clearContext();" +
-                        "self.copyContext.beginPath();" +
-                        "self.copyContext.moveTo(" + startX/preScale+"*scale" + "," + startY/preScale+"*scale" + ");" +
-                        "self.copyContext.lineTo(" + x/preScale+"*scale" + "," + startY/preScale+"*scale" + ");" +
-                        "self.copyContext.lineTo(" + x/preScale+"*scale" + "," + y/preScale+"*scale" + ");" +
-                        "self.copyContext.lineTo(" + startX/preScale+"*scale" + "," + y/preScale+"*scale" + ");" +
-                        "self.copyContext.lineTo(" + startX/preScale+"*scale" + "," + startY/preScale+"*scale" + ");" +
-                        "self.copyContext.stroke();";
-                }
-            } else if (graphType == 'line') {
-                if (self.canDraw) {
-                    self.clearContext();
-                    self.drawContext.beginPath();
-                    self.drawContext.moveTo(startX, startY);
-                    self.drawContext.lineTo(x, y);
-                    self.drawContext.stroke();
-                    self.traceStr  =
-                        "self.clearContext();" +
-                        "self.copyContext.beginPath();" +
-                        "self.copyContext.moveTo(" + startX/preScale+"*scale" + "," + startY/preScale+"*scale" + ");" +
-                        "self.copyContext.lineTo(" + x/preScale+"*scale" + "," + y/preScale+"*scale" + ");" +
-                        "self.copyContext.stroke();"
-                }
-            } else if (graphType == 'pencil') {
-                if (self.canDraw) {
-                  self.clearContext();
-                    self.drawContext.lineTo(x, y);
-                    self.drawContext.stroke();
-                    self.traceStr  += "self.copyContext.lineTo(" + x/preScale+"*scale" + "," + y/preScale+"*scale" + ");";
-                    self.traceStr  += "self.copyContext.stroke();";
-                }
-            } else if (graphType == 'rubber') {
-                self.clearContext();
-                self.drawContext.lineWidth = 1;
-                self.drawContext.beginPath();
-                self.drawContext.strokeStyle = "#000000";
-                self.drawContext.moveTo(x - size * 10, y - size * 10);
-                self.drawContext.lineTo(x + size * 10, y - size * 10);
-                self.drawContext.lineTo(x + size * 10, y + size * 10);
-                self.drawContext.lineTo(x - size * 10, y + size * 10);
-                self.drawContext.lineTo(x - size * 10, y - size * 10);
-                self.drawContext.stroke();
-                if (self.canDraw) {
-                    self.drawContext.clearRect(x - size * 10, y - size * 10, size * 20, size * 20);
-                    self.traceStr  += "self.copyContext.clearRect(" + x/preScale+"*scale" + "-" + "size * 10," + y + " -" + " size * 10, size * 20, size * 20);";
-                }
-
-            }
-        };
-
-        var mouseup = function (e) {
-            e = e || window.event;
-            self.drawContext.lineWidth = 1;
-            self.canDraw = false;
-            console.log(self.traceStr);
-            eval(self.traceStr);
-            self.connection.send({
-                isMessage: true,
-                toRun: true,
-                data: self.traceStr
-            });
-        }
-
-        var mouseover = function () {
-            self.$(self.drawCanvas).css('cursor', 'crosshair');
-        }
-
-        //选择功能按钮 修改样式
-        function chooseImg(objName) {
-            self.$("#" + objName).addClass("border_choose");
-            self.$("#" + objName).siblings('span').removeClass("border_choose");
+        if (graphType == 'square') {
+          if (self.canDraw) {
+            self.drawContext.beginPath();
+            self.clearContext();
+            self.drawContext.moveTo(startX, startY);
+            self.drawContext.lineTo(x, startY);
+            self.drawContext.lineTo(x, y);
+            self.drawContext.lineTo(startX, y);
+            self.drawContext.lineTo(startX, startY);
+            self.drawContext.stroke();
+            self.traceStr =
+              "self.clearContext();" +
+              "self.copyContext.beginPath();" +
+              "self.copyContext.moveTo(" + startX / preScale + "*scale" + "," + startY / preScale + "*scale" + ");" +
+              "self.copyContext.lineTo(" + x / preScale + "*scale" + "," + startY / preScale + "*scale" + ");" +
+              "self.copyContext.lineTo(" + x / preScale + "*scale" + "," + y / preScale + "*scale" + ");" +
+              "self.copyContext.lineTo(" + startX / preScale + "*scale" + "," + y / preScale + "*scale" + ");" +
+              "self.copyContext.lineTo(" + startX / preScale + "*scale" + "," + startY / preScale + "*scale" + ");" +
+              "self.copyContext.stroke();";
+          }
+        } else if (graphType == 'line') {
+          if (self.canDraw) {
+            self.clearContext();
+            self.drawContext.beginPath();
+            self.drawContext.moveTo(startX, startY);
+            self.drawContext.lineTo(x, y);
+            self.drawContext.stroke();
+            self.traceStr =
+              "self.clearContext();" +
+              "self.copyContext.beginPath();" +
+              "self.copyContext.moveTo(" + startX / preScale + "*scale" + "," + startY / preScale + "*scale" + ");" +
+              "self.copyContext.lineTo(" + x / preScale + "*scale" + "," + y / preScale + "*scale" + ");" +
+              "self.copyContext.stroke();"
+          }
+        } else if (graphType == 'pencil') {
+          if (self.canDraw) {
+            self.clearContext();
+            self.drawContext.lineTo(x, y);
+            self.drawContext.stroke();
+            self.traceStr += "self.copyContext.lineTo(" + x / preScale + "*scale" + "," + y / preScale + "*scale" + ");";
+            self.traceStr += "self.copyContext.stroke();";
+          }
+        } else if (graphType == 'rubber') {
+          self.clearContext();
+          self.drawContext.lineWidth = 1;
+          self.drawContext.beginPath();
+          self.drawContext.strokeStyle = "#000000";
+          self.drawContext.moveTo(x - size * 10, y - size * 10);
+          self.drawContext.lineTo(x + size * 10, y - size * 10);
+          self.drawContext.lineTo(x + size * 10, y + size * 10);
+          self.drawContext.lineTo(x - size * 10, y + size * 10);
+          self.drawContext.lineTo(x - size * 10, y - size * 10);
+          self.drawContext.stroke();
+          if (self.canDraw) {
+            self.drawContext.clearRect(x - size * 10, y - size * 10, size * 20, size * 20);
+            self.traceStr += "self.copyContext.clearRect(" + x / preScale + "*scale" + "-" + "size * 10," + y + " -" + " size * 10, size * 20, size * 20);";
+          }
 
         }
-        self.$(self.drawCanvas).unbind();
-        self.$(self.drawCanvas).bind('mousedown', mousedown);
-        self.$(self.drawCanvas).bind('mousemove', mousemove);
-        self.$(self.drawCanvas).bind('mouseup', mouseup);
-        self.$(self.drawCanvas).bind('mouseover', mouseover);
+      };
+
+      var mouseup = function(e) {
+        e = e || window.event;
+        self.drawContext.lineWidth = 1;
+        self.canDraw = false;
+        console.log(self.traceStr);
+        eval(self.traceStr);
+        self.connection.send({
+          isMessage: true,
+          toRun: true,
+          data: self.traceStr
+        });
+      }
+
+      var mouseover = function() {
+        self.$(self.drawCanvas).css('cursor', 'crosshair');
+      }
+
+      //选择功能按钮 修改样式
+      function chooseImg(objName) {
+        self.$("#" + objName).addClass("border_choose");
+        self.$("#" + objName).siblings('span').removeClass("border_choose");
+      }
+      self.$(self.drawCanvas).unbind();
+      self.$(self.drawCanvas).bind('mousedown', mousedown);
+      self.$(self.drawCanvas).bind('mousemove', mousemove);
+      self.$(self.drawCanvas).bind('mouseup', mouseup);
+      self.$(self.drawCanvas).bind('mouseover', mouseover);
     }
   },
   created() {
@@ -357,141 +355,151 @@ export default {
     self.getUserInfo();
 
     var connection = new RTCMultiConnection();
-      connection.socketURL = 'https://210.28.188.98:3100/';
-      connection.session = {
-          audio: true,
-          video: true,
-          data: true
-      };
-      connection.sdpConstraints.mandatory = {
-          OfferToReceiveAudio: true,
-          OfferToReceiveVideo: true
-      };
+    connection.socketURL = 'https://210.28.188.98:3100/';
+    connection.session = {
+      audio: true,
+      video: true,
+      data: true
+    };
+    connection.sdpConstraints.mandatory = {
+      OfferToReceiveAudio: true,
+      OfferToReceiveVideo: true
+    };
 
-      connection.enableFileSharing = true;
+    connection.enableFileSharing = true;
 
-      connection.filesContainer = document.getElementById('file-container');
-      connection.onstream = function(event) {
-          //videoContainer.appendChild(e.mediaElement);
-          var localVideoContainer = document.querySelector('#local-user');
-          var remoteVideoContainer = document.querySelector('#remote-user');
-          if (event.type == "local") {
-              localVideoContainer.appendChild(event.mediaElement);
-              self.$("video").css({"width":"100%"});
-          }
-          if (event.type == "remote") {
-              remoteVideoContainer.appendChild(event.mediaElement);
-              self.$("video").css({"width":"100%"});
-          }
-          event.mediaElement.id = event.streamid;
-      };
-      connection.onopen = function() {
-          //document.getElementById('share-file').disabled = false;
-          document.getElementById('input-text-chat').disabled = false;
-        //  document.getElementById('btn-leave-room').disabled = false;
-      };
-      connection.onclose = function() {
-          document.getElementById('input-text-chat').disabled = true;
-      };
-      // ......................................................
-      // ..................white board share.............
-      // ......................................................
-      connection.onmessage = function(event) {
-
-          if (event.data.isMessage) {  //聊天
-              if(event.data.chat){
-                  self.allChat.push(event.data.chat);
-              }else if(event.data.toRun){            //主要处理白板上的画图工具
-                  var receivetraceStr  = event.data.data;
-                  eval(receivetraceStr);
-                  self.traceStr = receivetraceStr;
-                  self.saveTrace();
-              }else if(event.data.clearDraw){
-                  self.drawContext.clearRect(0, 0, canvasWidth, canvasHeight);
-                  self.copyContext.clearRect(0, 0, canvasWidth, canvasHeight);
-                  self.indexArray[self.pageNum - 1] = self.index = 0;
-                  self.traceArray = [];
-                  self.tolArray[self.pageNum - 1] = self.traceArray;
-              }else if(event.data.fileOperate == 'NextPage'){
-                  console.log("next page...");
-                  NextPage();
-              }else if(event.data.fileOperate == 'PrevPage'){
-                  console.log("prev page...");
-                  PrevPage();
-              }else if(event.data.fileOperate == 'ZoomOut'){
-                  console.log("zoom out");
-                  if(CURRENT_FILE_TYPE_ON_CANVAS === 'PDF'){
-                      scale = scale + SCALE_GAP;
-                      onPDFZoomOut();
-                      //drawCurrentTrace();
-                  }else if(CURRENT_FILE_TYPE_ON_CANVAS === 'IMAGE'){
-                      console.log("image zoom out");
-                      scale = scale + SCALE_GAP;
-                      onImageZoomOut();
-                      setTimeout(drawCurrentTrace,100);
-                  }
-              }else if(event.data.fileOperate == 'ZoomIn'){
-                  console.log("zoom in");
-                  if(CURRENT_FILE_TYPE_ON_CANVAS === 'PDF'){
-                      scale = scale - SCALE_GAP;
-                      onPDFZoomIn();
-                      //drawCurrentTrace();
-                  }else if(CURRENT_FILE_TYPE_ON_CANVAS === 'IMAGE'){
-                      console.log("image zoom in ");
-                      scale = scale - SCALE_GAP;
-                      onImageZoomIn();
-                      setTimeout(drawCurrentTrace,100);
-                  }
-              }
-          }
-      };
-      connection.onstreamended = function(event) {
-          var mediaElement = document.getElementById(event.streamid);
-          if(mediaElement) {
-              mediaElement.parentNode.removeChild(mediaElement);
-          }
-      };
-      connection.onEntireSessionClosed = function(event) {
-          connection.attachStreams.forEach(function(stream) {
-              stream.stop();
-          });
-          // don't display alert for moderator
-          if(connection.userid === event.userid) return;
-          //document.querySelector('h1').innerHTML = 'Entire session has been closed by the moderator: ' + event.userid;
-      };
-      connection.onUserIdAlreadyTaken = function(useridAlreadyTaken, yourNewUserId) {
-          // seems room is already opened
-          connection.join(useridAlreadyTaken);
-      };
-      self.connection = connection;
-      let socket = io.connect('https://210.28.188.98:3100?userName=' + self.owner);
-      socket.on('connect', function() {
-        console.log("用户已连接消息服务器 ！");
-        socket.emit('login', {
-          userName: self.owner
+    connection.filesContainer = document.getElementById('file-container');
+    connection.onstream = function(event) {
+      //videoContainer.appendChild(e.mediaElement);
+      var localVideoContainer = document.querySelector('#local-user');
+      var remoteVideoContainer = document.querySelector('#remote-user');
+      if (event.type == "local") {
+        localVideoContainer.appendChild(event.mediaElement);
+        self.$("video").css({
+          "width": "100%"
         });
+      }
+      if (event.type == "remote") {
+        remoteVideoContainer.appendChild(event.mediaElement);
+        self.$("video").css({
+          "width": "100%"
+        });
+      }
+      event.mediaElement.id = event.streamid;
+    };
+    connection.onopen = function() {
+      //document.getElementById('share-file').disabled = false;
+      document.getElementById('input-text-chat').disabled = false;
+      //  document.getElementById('btn-leave-room').disabled = false;
+    };
+    connection.onclose = function() {
+      document.getElementById('input-text-chat').disabled = true;
+    };
+    // ......................................................
+    // ..................white board share.............
+    // ......................................................
+    connection.onmessage = function(event) {
+
+      if (event.data.isMessage) { //聊天
+        if (event.data.chat) {
+          self.allChat.push(event.data.chat);
+        } else if (event.data.toRun) { //主要处理白板上的画图工具
+          var receivetraceStr = event.data.data;
+          eval(receivetraceStr);
+          self.traceStr = receivetraceStr;
+          self.saveTrace();
+        } else if (event.data.clearDraw) {
+          self.drawContext.clearRect(0, 0, canvasWidth, canvasHeight);
+          self.copyContext.clearRect(0, 0, canvasWidth, canvasHeight);
+          self.indexArray[self.pageNum - 1] = self.index = 0;
+          self.traceArray = [];
+          self.tolArray[self.pageNum - 1] = self.traceArray;
+        } else if (event.data.fileOperate == 'NextPage') {
+          console.log("next page...");
+          NextPage();
+        } else if (event.data.fileOperate == 'PrevPage') {
+          console.log("prev page...");
+          PrevPage();
+        } else if (event.data.fileOperate == 'ZoomOut') {
+          console.log("zoom out");
+          if (CURRENT_FILE_TYPE_ON_CANVAS === 'PDF') {
+            scale = scale + SCALE_GAP;
+            onPDFZoomOut();
+            //drawCurrentTrace();
+          } else if (CURRENT_FILE_TYPE_ON_CANVAS === 'IMAGE') {
+            console.log("image zoom out");
+            scale = scale + SCALE_GAP;
+            onImageZoomOut();
+            setTimeout(drawCurrentTrace, 100);
+          }
+        } else if (event.data.fileOperate == 'ZoomIn') {
+          console.log("zoom in");
+          if (CURRENT_FILE_TYPE_ON_CANVAS === 'PDF') {
+            scale = scale - SCALE_GAP;
+            onPDFZoomIn();
+            //drawCurrentTrace();
+          } else if (CURRENT_FILE_TYPE_ON_CANVAS === 'IMAGE') {
+            console.log("image zoom in ");
+            scale = scale - SCALE_GAP;
+            onImageZoomIn();
+            setTimeout(drawCurrentTrace, 100);
+          }
+        }
+      }
+    };
+    connection.onstreamended = function(event) {
+      var mediaElement = document.getElementById(event.streamid);
+      if (mediaElement) {
+        mediaElement.parentNode.removeChild(mediaElement);
+      }
+    };
+    connection.onEntireSessionClosed = function(event) {
+      connection.attachStreams.forEach(function(stream) {
+        stream.stop();
       });
-      socket.on('replyRefuseJoin',function(data){
-        //对方拒绝视频的消息提示
-        alert("对方忙，拒绝视频！");
-        //关闭本地视频
-        self.closeVideo();
+      // don't display alert for moderator
+      if (connection.userid === event.userid) return;
+      //document.querySelector('h1').innerHTML = 'Entire session has been closed by the moderator: ' + event.userid;
+    };
+    connection.onUserIdAlreadyTaken = function(useridAlreadyTaken, yourNewUserId) {
+      // seems room is already opened
+      connection.join(useridAlreadyTaken);
+    };
+    self.connection = connection;
+    let socket = io.connect('https://210.28.188.98:3100?userName=' + self.owner);
+    socket.on('connect', function() {
+      console.log("用户已连接消息服务器 ！");
+      socket.emit('login', {
+        userName: self.owner
       });
-      socket.on('replyInviteVideo',function(data){
-          console.log("用户"+data.toUser+"收到邀请！");
-         if(data.toUser == self.owner)
-         {
-           self.$confirm("用户" + data.owner + "发起视频邀请").then(_ => {
-             console.log("用户" + userName + "接受了" + data.owner + "视频邀请");
-             self.$router.push({ path: '/main/vedio', query: { userName: data.toUser, friendName: data.owner, roomId: data.roomid}});
-           }).catch(_ => {
-              socket.emit('refuseJoin',data);
-           });
-         }
-       });
-      self.socket = socket;
+    });
+    socket.on('replyRefuseJoin', function(data) {
+      //对方拒绝视频的消息提示
+      alert("对方忙，拒绝视频！");
+      //关闭本地视频
+      self.closeVideo();
+    });
+    socket.on('replyInviteVideo', function(data) {
+      console.log("用户" + data.toUser + "收到邀请！");
+      if (data.toUser == self.owner) {
+        self.$confirm("用户" + data.owner + "发起视频邀请").then(_ => {
+          console.log("用户" + userName + "接受了" + data.owner + "视频邀请");
+          self.$router.push({
+            path: '/main/vedio',
+            query: {
+              userName: data.toUser,
+              friendName: data.owner,
+              roomId: data.roomid
+            }
+          });
+        }).catch(_ => {
+          socket.emit('refuseJoin', data);
+        });
+      }
+    });
+    self.socket = socket;
   },
-  mounted(){
+  mounted() {
     const self = this;
     self.pdfCanvas = document.getElementById("viewBack");
     self.pdfContext = self.pdfCanvas.getContext("2d");
@@ -507,178 +515,186 @@ export default {
 .userInfo {
   padding: 20px;
 }
+
 #main {
-    width: 1024px;
-    margin: auto;
+  width: 1024px;
+  margin: auto;
 }
 
 #info {
-    width: 840px;
-    margin: auto;
-    margin-top: 20px;
+  width: 840px;
+  margin: auto;
+  margin-top: 20px;
 }
 
 #info #media {
-    width: 100%;
-    height: 240px;
+  width: 100%;
+  height: 240px;
 }
 
 #info #media .left {
-    float: left;
-    width: 15%;
-    height: 100%;
+  float: left;
+  width: 15%;
+  height: 100%;
 }
 
 #info #media .right {
-    float: right;
-    width: 83%;
-    height: 100%;
+  float: right;
+  width: 83%;
+  height: 100%;
 }
 
 #info #media .right #user {
-    float: left;
-    width: 60%;
-    height: 100%;
-    background-color: #9B9B9B;
-    box-shadow: 1px 2px 4px 2px #888888;
-    border-radius: 5px;
+  float: left;
+  width: 60%;
+  height: 100%;
+  background-color: #9B9B9B;
+  box-shadow: 1px 2px 4px 2px #888888;
+  border-radius: 5px;
 }
 
 #info #media .right #expert {
-    float: right;
-    width: 35%;
-    height: 100%;
-    background-color: #9B9B9B;
-    box-shadow: 1px 2px 4px 2px #888888;
-    border-radius: 5px;
+  float: right;
+  width: 35%;
+  height: 100%;
+  background-color: #9B9B9B;
+  box-shadow: 1px 2px 4px 2px #888888;
+  border-radius: 5px;
 }
 
 #info #white_board {
-    width: 100%;
-    height: 700px;
-    margin-top: 20px;
+  width: 100%;
+  height: 700px;
+  margin-top: 20px;
 }
 
 #info #white_board #menu {
-    width: 100%;
-    height: 60px;
-    background-color: #4A4A4A;
-    box-shadow: 0px 2px 4px #888888;
-    text-align: center;
-    border-radius: 10px;
+  width: 100%;
+  height: 60px;
+  background-color: #4A4A4A;
+  box-shadow: 0px 2px 4px #888888;
+  text-align: center;
+  border-radius: 10px;
 }
 
 #info #white_board #menu span {
-    width: 64px;
-    height: 58px;
-    display: inline-block;
+  width: 64px;
+  height: 58px;
+  display: inline-block;
 }
 
 #info #white_board #menu .marginTop {
-    margin-top: -5px;
+  margin-top: -5px;
 }
 
 #info #white_board #menu img {
-    margin-top: 10px;
-    margin-left: 20px;
-    margin-right: 20px;
+  margin-top: 10px;
+  margin-left: 20px;
+  margin-right: 20px;
 }
 
 #info #white_board #board {
-    width: 840px;
-    height: 602px;
-    box-shadow: 0px 2px 4px #888888;
-    margin-top: 15px;
-    border-radius: 10px;
+  width: 840px;
+  height: 602px;
+  box-shadow: 0px 2px 4px #888888;
+  margin-top: 15px;
+  border-radius: 10px;
 }
 
 #info #button {
-    width: 100%;
-    height: 150px;
-    margin-top: 20px;
+  width: 100%;
+  height: 150px;
+  margin-top: 20px;
 }
 
 #info #button .allBtn {
-    float: left;
-    width: 100px;
-    height: 40px;
-    border: 0;
-    background: #9B9B9B;
-    border-radius: 10px;
-    margin-right: 30px;
+  float: left;
+  width: 100px;
+  height: 40px;
+  border: 0;
+  background: #9B9B9B;
+  border-radius: 10px;
+  margin-right: 30px;
 }
 
 #info #button .operation {
-    width: 100%;
-    height: 100%;
-    text-align: center;
-    font-size: 15px;
-    margin-top: 10px;
-    color: white;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  font-size: 15px;
+  margin-top: 10px;
+  color: white;
 }
 
 #footer {
-    width: 100%;
-    height: 100px;
-    background-color: #d8d8d8;
-    padding-top: 30px;
+  width: 100%;
+  height: 100px;
+  background-color: #d8d8d8;
+  padding-top: 30px;
 }
 
 #footer div {
-    text-align: center;
+  text-align: center;
 }
 
 #canvasContainer {
-    width: 840px;
-    height: 602px;
-    position: absolute;
-    border-radius: 10px;
+  width: 840px;
+  height: 602px;
+  position: absolute;
+  border-radius: 10px;
 }
 
-video{
-    object-fit: cover;
-    width: 100%;
+video {
+  object-fit: cover;
+  width: 100%;
 }
 
-#viewFront{
-    z-index:8;position: absolute;top:0px;
+#viewFront {
+  z-index: 8;
+  position: absolute;
+  top: 0px;
 }
 
-#viewMiddle{
-    z-index:5;position: absolute;top:0px;
+#viewMiddle {
+  z-index: 5;
+  position: absolute;
+  top: 0px;
 }
 
-#viewBack{
-    top:0px;
+#viewBack {
+  top: 0px;
 }
 
-.border_choose{
-	background: grey;
+.border_choose {
+  background: grey;
 }
 
-#canvasContainer{
-	width:840px;height:602px;position:absolute;
+#canvasContainer {
+  width: 840px;
+  height: 602px;
+  position: absolute;
 }
 
-canvas{
-    border-radius: 10px;
+canvas {
+  border-radius: 10px;
 }
 
-.header{
-	width:100%;
-	background-color:#4ba2a2;
-	height: 130px;
+.header {
+  width: 100%;
+  background-color: #4ba2a2;
+  height: 130px;
 }
 
 a {
-	color: white !important;
+  color: white !important;
 }
 
-#logo{
-	margin-left:5%;
-	width:80%;
-	position:absolute;
+#logo {
+  margin-left: 5%;
+  width: 80%;
+  position: absolute;
 }
+
 .videoWrapeer {
   min-height: 296px;
   background-size: 100%;
@@ -687,22 +703,28 @@ a {
   font-size: 20px;
   background-color: #9B9B9B;
 }
-.videoWrapeer video{ width: 100%; }
-#input-text-chat {
-  width: 70%; margin: 20px auto;
-  background-color: #fff;
-    background-image: none;
-    border-radius: 4px;
-    border: 1px solid #bfcbd9;
-    box-sizing: border-box;
-    color: #1f2d3d;
-    display: inline-block;
-    font-size: inherit;
-    height: 36px;
-    line-height: 1;
-    outline: none;
-    padding: 3px 10px;
+
+.videoWrapeer video {
+  width: 100%;
 }
+
+#input-text-chat {
+  width: 70%;
+  margin: 20px auto;
+  background-color: #fff;
+  background-image: none;
+  border-radius: 4px;
+  border: 1px solid #bfcbd9;
+  box-sizing: border-box;
+  color: #1f2d3d;
+  display: inline-block;
+  font-size: inherit;
+  height: 36px;
+  line-height: 1;
+  outline: none;
+  padding: 3px 10px;
+}
+
 .chatList {
   margin: 10px;
 }
