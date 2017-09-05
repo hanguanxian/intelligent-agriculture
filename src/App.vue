@@ -44,12 +44,7 @@ export default {
             userName: userName
           });
         });
-        socket.on('replyRefuseJoin',function(data){
-          //对方拒绝视频的消息提示
-          alert("对方忙，拒绝视频！");
-          //关闭本地视频
-          closeVideo();
-        });
+
 				// let data = {
 				// 	owner: "ddd",
 				// 	toUser: "zhangsir",
@@ -68,7 +63,6 @@ export default {
 						});
           }
         });
-        self.socket = socket;
       }
     }
   }

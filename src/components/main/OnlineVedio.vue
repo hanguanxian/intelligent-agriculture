@@ -120,6 +120,7 @@ export default {
       tolArray: [],//数组代表所有页执行的所有操作，每个元素代表第n页执行的所欲操作，每个元素由traceArray组成
       indexArray: [],//数组代表当前页执行的步数，每个元素代表当前页执行的第几步
       index: 0,
+      color:"#FF0000",
       canDraw:false,
       pageNum: 1
     }
@@ -225,7 +226,7 @@ export default {
     draw_graph(graphType) {
       const self = this;
       var size = 1;
-      var color = "#FF0000";
+
         self.$("#viewFront").css("z-index", "8");
         var startX;
         var startY;
@@ -233,21 +234,24 @@ export default {
         chooseImg(graphType);
         var mousedown = function (e) {
             preScale = scale;
-            self.drawContext.strokeStyle = color;
+            self.drawContext.strokeStyle = self.color;
             self.drawContext.lineWidth = size;
             e = e || window.event;
             self.canDraw = true;
             startX = e.offsetX;
             startY = e.offsetY;
             if (graphType == 'pencil') {
+              self.traceStr = "self.copyContext.beginPath();";
+            self.traceStr += "self.copyContext.moveTo(" + startX/preScale+"*scale"+ "," + startY/preScale+"*scale" + ");";
+
                 self.drawContext.beginPath();
                 self.drawContext.moveTo(startX/preScale+"*scale", startY/preScale+"*scale");
             } else if (graphType == 'line') {
-                self.copyContext.strokeStyle = color;
+                self.copyContext.strokeStyle = self.color;
                 self.copyContext.lineWidth = size;
             } else if (graphType == 'rubber') {
                 self.copyContext.clearRect(startX - size * 10, startY - size * 10, size * 20, size * 20);
-                self.traceStr  += "this.copyContext.clearRect(" + startX/preScale+"*scale" + "-" + size + "*10," + startY + "-" + size + "*10," + size + "*20," + size + "*20);";
+                self.traceStr  += "self.copyContext.clearRect(" + startX/preScale+"*scale" + "-" + size + "*10," + startY + "-" + size + "*10," + size + "*20," + size + "*20);";
             }
         }
 
@@ -266,14 +270,14 @@ export default {
                     self.drawContext.lineTo(startX, startY);
                     self.drawContext.stroke();
                     self.traceStr  =
-                        "this.clearContext();" +
-                        "this.copyContext.beginPath();" +
-                        "this.copyContext.moveTo(" + startX/preScale+"*scale" + "," + startY/preScale+"*scale" + ");" +
-                        "this.copyContext.lineTo(" + x/preScale+"*scale" + "," + startY/preScale+"*scale" + ");" +
-                        "this.copyContext.lineTo(" + x/preScale+"*scale" + "," + y/preScale+"*scale" + ");" +
-                        "this.copyContext.lineTo(" + startX/preScale+"*scale" + "," + y/preScale+"*scale" + ");" +
-                        "this.copyContext.lineTo(" + startX/preScale+"*scale" + "," + startY/preScale+"*scale" + ");" +
-                        "this.copyContext.stroke();";
+                        "self.clearContext();" +
+                        "self.copyContext.beginPath();" +
+                        "self.copyContext.moveTo(" + startX/preScale+"*scale" + "," + startY/preScale+"*scale" + ");" +
+                        "self.copyContext.lineTo(" + x/preScale+"*scale" + "," + startY/preScale+"*scale" + ");" +
+                        "self.copyContext.lineTo(" + x/preScale+"*scale" + "," + y/preScale+"*scale" + ");" +
+                        "self.copyContext.lineTo(" + startX/preScale+"*scale" + "," + y/preScale+"*scale" + ");" +
+                        "self.copyContext.lineTo(" + startX/preScale+"*scale" + "," + startY/preScale+"*scale" + ");" +
+                        "self.copyContext.stroke();";
                 }
             } else if (graphType == 'line') {
                 if (self.canDraw) {
@@ -283,19 +287,19 @@ export default {
                     self.drawContext.lineTo(x, y);
                     self.drawContext.stroke();
                     self.traceStr  =
-                        "this.clearContext();" +
-                        "this.copyContext.beginPath();" +
-                        "this.copyContext.moveTo(" + startX/preScale+"*scale" + "," + startY/preScale+"*scale" + ");" +
-                        "this.copyContext.lineTo(" + x/preScale+"*scale" + "," + y/preScale+"*scale" + ");" +
-                        "this.copyContext.stroke();"
+                        "self.clearContext();" +
+                        "self.copyContext.beginPath();" +
+                        "self.copyContext.moveTo(" + startX/preScale+"*scale" + "," + startY/preScale+"*scale" + ");" +
+                        "self.copyContext.lineTo(" + x/preScale+"*scale" + "," + y/preScale+"*scale" + ");" +
+                        "self.copyContext.stroke();"
                 }
             } else if (graphType == 'pencil') {
                 if (self.canDraw) {
+                  self.clearContext();
                     self.drawContext.lineTo(x, y);
                     self.drawContext.stroke();
-                    self.traceStr  += "this.copyContext.lineTo(" + x/preScale+"*scale" + "," + y/preScale+"*scale" + ");";
-                    self.traceStr  += "this.copyContext.stroke();";
-
+                    self.traceStr  += "self.copyContext.lineTo(" + x/preScale+"*scale" + "," + y/preScale+"*scale" + ");";
+                    self.traceStr  += "self.copyContext.stroke();";
                 }
             } else if (graphType == 'rubber') {
                 self.clearContext();
@@ -310,7 +314,7 @@ export default {
                 self.drawContext.stroke();
                 if (self.canDraw) {
                     self.drawContext.clearRect(x - size * 10, y - size * 10, size * 20, size * 20);
-                    self.traceStr  += "this.copyContext.clearRect(" + x/preScale+"*scale" + "-" + "size * 10," + y + " -" + " size * 10, size * 20, size * 20);";
+                    self.traceStr  += "self.copyContext.clearRect(" + x/preScale+"*scale" + "-" + "size * 10," + y + " -" + " size * 10, size * 20, size * 20);";
                 }
 
             }
@@ -319,12 +323,9 @@ export default {
         var mouseup = function (e) {
             e = e || window.event;
             self.drawContext.lineWidth = 1;
-
             self.canDraw = false;
-
-           eval(self.traceStr);
-
-            console.log("sendtest...");
+            console.log(self.traceStr);
+            eval(self.traceStr);
             self.connection.send({
                 isMessage: true,
                 toRun: true,
