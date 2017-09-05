@@ -83,10 +83,10 @@
 
 
       <div id="chat-div" style="border:1px solid #333;border-radius: 10px;margin:10px;text-align: center;background: #9B9B9B;">
-        <el-input v-model="chat" style="width: 90%; margin: 10px auto;" placeholder="请输入内容" @:keyup.enter="sendMsg"></el-input>
+        <input v-model="chat" id="input-text-chat" placeholder="请输入内容" v-on:keyup.enter="sendMsg"/>
         <!-- <input type="text" id="input-text-chat" style="height:40px;width:90%;border:1px solid #39c;font-size:20px;color:deeppink;background:rgba(0,0,0,0.1);margin-top:10px;border-radius: 10px;" placeholder="Enter Text Chat" disabled> -->
         <div class="chat-output" style="line-height: 24px;font-size:20px;color:#000;background:#39c;">
-          <div v-for="(chats, index) in allChat">{{ chats }}</div>
+          <div v-for="(chats, index) in allChat" class="chatList">{{ chats }}</div>
         </div>
       </div>
 
@@ -96,7 +96,6 @@
 </template>
 
 <script>
-//require("../../../static/socket/draw.js");
 export default {
   data() {
     return {
@@ -153,7 +152,7 @@ export default {
             data: self.chat
         });
         self.allChat.push(self.chat);
-        self.value = '';
+        self.chat = '';
     },
     startVideo(){
       const self = this;
@@ -178,7 +177,7 @@ export default {
             self.connection.leave();
         }
     },
-     saveTrace(){
+    saveTrace(){
        const self = this;
         self.traceArray[self.index] = self.traceStr;//traceStr代表每一次划线动作，traceArray代表当前页做的所有动作语句
         self.index++;
@@ -227,9 +226,7 @@ export default {
       const self = this;
       var size = 1;
       var color = "#FF0000";
-
         self.$("#viewFront").css("z-index", "8");
-
         var startX;
         var startY;
         self.traceStr = "";
@@ -242,16 +239,10 @@ export default {
             self.canDraw = true;
             startX = e.offsetX;
             startY = e.offsetY;
-
             if (graphType == 'pencil') {
-                // self.traceStr  = "this.copyContext.beginPath();";
-                // self.traceStr  += "this.copyContext.moveTo(" + startX/preScale+"*scale"+ "," + startY/preScale+"*scale" + ");";
                 self.drawContext.beginPath();
                 self.drawContext.moveTo(startX/preScale+"*scale", startY/preScale+"*scale");
-
-
             } else if (graphType == 'line') {
-
                 self.copyContext.strokeStyle = color;
                 self.copyContext.lineWidth = size;
             } else if (graphType == 'rubber') {
@@ -269,14 +260,11 @@ export default {
                     self.drawContext.beginPath();
                     self.clearContext();
                     self.drawContext.moveTo(startX, startY);
-
                     self.drawContext.lineTo(x, startY);
-
                     self.drawContext.lineTo(x, y);
                     self.drawContext.lineTo(startX, y);
                     self.drawContext.lineTo(startX, startY);
                     self.drawContext.stroke();
-
                     self.traceStr  =
                         "this.clearContext();" +
                         "this.copyContext.beginPath();" +
@@ -294,19 +282,15 @@ export default {
                     self.drawContext.moveTo(startX, startY);
                     self.drawContext.lineTo(x, y);
                     self.drawContext.stroke();
-
                     self.traceStr  =
                         "this.clearContext();" +
                         "this.copyContext.beginPath();" +
                         "this.copyContext.moveTo(" + startX/preScale+"*scale" + "," + startY/preScale+"*scale" + ");" +
                         "this.copyContext.lineTo(" + x/preScale+"*scale" + "," + y/preScale+"*scale" + ");" +
                         "this.copyContext.stroke();"
-
                 }
             } else if (graphType == 'pencil') {
                 if (self.canDraw) {
-                    //console.log("pencil x,y");
-                    //console.log(x+","+y);
                     self.drawContext.lineTo(x, y);
                     self.drawContext.stroke();
                     self.traceStr  += "this.copyContext.lineTo(" + x/preScale+"*scale" + "," + y/preScale+"*scale" + ");";
@@ -327,7 +311,6 @@ export default {
                 if (self.canDraw) {
                     self.drawContext.clearRect(x - size * 10, y - size * 10, size * 20, size * 20);
                     self.traceStr  += "this.copyContext.clearRect(" + x/preScale+"*scale" + "-" + "size * 10," + y + " -" + " size * 10, size * 20, size * 20);";
-
                 }
 
             }
@@ -343,10 +326,10 @@ export default {
 
             console.log("sendtest...");
             self.connection.send({
-                    isMessage: true,
-                    toRun: true,
-                    data: traceStr
-                });
+                isMessage: true,
+                toRun: true,
+                data: self.traceStr
+            });
         }
 
         var mouseover = function () {
@@ -359,13 +342,11 @@ export default {
             self.$("#" + objName).siblings('span').removeClass("border_choose");
 
         }
-
         self.$(self.drawCanvas).unbind();
         self.$(self.drawCanvas).bind('mousedown', mousedown);
         self.$(self.drawCanvas).bind('mousemove', mousemove);
         self.$(self.drawCanvas).bind('mouseup', mouseup);
         self.$(self.drawCanvas).bind('mouseover', mouseover);
-
     }
   },
   created() {
@@ -418,7 +399,7 @@ export default {
 
           if (event.data.isMessage) {  //聊天
               if(event.data.chat){
-                  appendDIV(event.data.data);
+                  self.allChat.push(event.data.chat);
               }else if(event.data.toRun){            //主要处理白板上的画图工具
                   var receivetraceStr  = event.data.data;
                   eval(receivetraceStr);
@@ -427,9 +408,9 @@ export default {
               }else if(event.data.clearDraw){
                   self.drawContext.clearRect(0, 0, canvasWidth, canvasHeight);
                   self.copyContext.clearRect(0, 0, canvasWidth, canvasHeight);
-                  indexArray[self.pageNum - 1] = self.index = 0;
-                  traceArray = [];
-                  tolArray[self.pageNum - 1] = traceArray;
+                  self.indexArray[self.pageNum - 1] = self.index = 0;
+                  self.traceArray = [];
+                  self.tolArray[self.pageNum - 1] = self.traceArray;
               }else if(event.data.fileOperate == 'NextPage'){
                   console.log("next page...");
                   NextPage();
@@ -495,21 +476,28 @@ export default {
         //关闭本地视频
         self.closeVideo();
       });
+      socket.on('replyInviteVideo',function(data){
+          console.log("用户"+data.toUser+"收到邀请！");
+         if(data.toUser == self.owner)
+         {
+           self.$confirm("用户" + data.owner + "发起视频邀请").then(_ => {
+             console.log("用户" + userName + "接受了" + data.owner + "视频邀请");
+             self.$router.push({ path: '/main/vedio', query: { userName: data.toUser, friendName: data.owner, roomId: data.roomid}});
+           }).catch(_ => {
+              socket.emit('refuseJoin',data);
+           });
+         }
+       });
       self.socket = socket;
-
-
   },
   mounted(){
     const self = this;
     self.pdfCanvas = document.getElementById("viewBack");
     self.pdfContext = self.pdfCanvas.getContext("2d");
-    console.log(self.pdfContext);
-    console.log(self.pdfCanvas);
     self.copyCanvas = document.getElementById("viewMiddle");
     self.copyContext = self.copyCanvas.getContext("2d");
     self.drawCanvas = document.getElementById("viewFront");
     self.drawContext = self.drawCanvas.getContext("2d");
-
   }
 }
 </script>
@@ -521,35 +509,29 @@ export default {
 #main {
     width: 1024px;
     margin: auto;
-    /*background-color: #eeeeee;*/
 }
 
 #info {
     width: 840px;
     margin: auto;
     margin-top: 20px;
-    /*  	background-color:#eeeeee; */
 }
 
 #info #media {
     width: 100%;
     height: 240px;
-    /*  	background-color:grey; */
 }
 
 #info #media .left {
     float: left;
     width: 15%;
     height: 100%;
-    /*   	background-color:grey; */
 }
 
 #info #media .right {
     float: right;
     width: 83%;
     height: 100%;
-    /*   	background-color:#9B9B9B; */
-    /*   	box-shadow: 0px 2px 4px #888888; */
 }
 
 #info #media .right #user {
@@ -559,7 +541,6 @@ export default {
     background-color: #9B9B9B;
     box-shadow: 1px 2px 4px 2px #888888;
     border-radius: 5px;
-    /*background:url('../res/user_videobg.png') no-repeat center center;*/
 }
 
 #info #media .right #expert {
@@ -569,16 +550,12 @@ export default {
     background-color: #9B9B9B;
     box-shadow: 1px 2px 4px 2px #888888;
     border-radius: 5px;
-    /*background:url('../res/self_videobg.png') no-repeat center center;*/
 }
 
 #info #white_board {
     width: 100%;
     height: 700px;
     margin-top: 20px;
-    /*  	background-color: #4A4A4A; */
-    /*  	box-shadow: 0px 2px 4px #888888; */
-    /* 	background-color: gray; */
 }
 
 #info #white_board #menu {
@@ -607,11 +584,8 @@ export default {
 }
 
 #info #white_board #board {
-    /*width: 100%;*/
-    /*height: 80%;*/
     width: 840px;
     height: 602px;
-    /*background-color: #4A4A4A;*/
     box-shadow: 0px 2px 4px #888888;
     margin-top: 15px;
     border-radius: 10px;
@@ -621,15 +595,12 @@ export default {
     width: 100%;
     height: 150px;
     margin-top: 20px;
-    /*  	background-color:grey; */
 }
 
 #info #button .allBtn {
     float: left;
     width: 100px;
     height: 40px;
-    /*background: url("../img/ready_or_close_btn_background.png") no-repeat center center;*/
-    /*background-size: 95% 48px;*/
     border: 0;
     background: #9B9B9B;
     border-radius: 10px;
@@ -639,7 +610,6 @@ export default {
 #info #button .operation {
     width: 100%;
     height: 100%;
-    /*   	vertical-align: middle; */
     text-align: center;
     font-size: 15px;
     margin-top: 10px;
@@ -717,4 +687,22 @@ a {
   background-color: #9B9B9B;
 }
 .videoWrapeer video{ width: 100%; }
+#input-text-chat {
+  width: 70%; margin: 20px auto;
+  background-color: #fff;
+    background-image: none;
+    border-radius: 4px;
+    border: 1px solid #bfcbd9;
+    box-sizing: border-box;
+    color: #1f2d3d;
+    display: inline-block;
+    font-size: inherit;
+    height: 36px;
+    line-height: 1;
+    outline: none;
+    padding: 3px 10px;
+}
+.chatList {
+  margin: 10px;
+}
 </style>
