@@ -58,11 +58,11 @@
       <div id="info">
         <div id="white_board">
           <div id="menu" class="drawController" v-show="toolBarVisible" style="display: block;border-radius: 0 10px 10px 0;">
-            <span @click="draw_graph('pencil',this)"><img src="../../../static/images/vedio/tools_pencil.png"></span>
-            <span @click="draw_graph('square',this)" class="marginTop"><img src="../../../static/images/vedio/tools_rectangle.png"  ></span>
-            <span @click="draw_graph('line',this);" class="marginTop"><img src="../../../static/images/vedio/tools_line.png"  ></span>
-            <span @click="draw_graph('rubber',this)" class="marginTop"><img src="../../../static/images/vedio/tools_ruber.png" /></span>
-            <span onclick="clearContext('1',this)"><img src="../../../static/images/vedio/tools_lajitong.png"  ></span>
+            <span @click="draw_graph('pencil')" id="pencil"><img src="../../../static/images/vedio/tools_pencil.png"></span>
+            <span @click="draw_graph('square')" id="square" class="marginTop"><img src="../../../static/images/vedio/tools_rectangle.png"  ></span>
+            <span @click="draw_graph('line');" id="line" class="marginTop"><img src="../../../static/images/vedio/tools_line.png"  ></span>
+            <span @click="draw_graph('rubber')" id="rubber" class="marginTop"><img src="../../../static/images/vedio/tools_ruber.png" /></span>
+            <span @click="clearContext('1')" id=""><img src="../../../static/images/vedio/tools_lajitong.png"  ></span>
             <span id="show-file"><img src="../../../static/images/vedio/tools_showfile.png" ></span>
             <span id="pre-page"><img src="../../../static/images/vedio/tools_pre_page.png" ></span>
             <span id="next-page"><img src="../../../static/images/vedio/tools_next_page.png" ></span>
@@ -112,7 +112,15 @@ export default {
       pdfContext: "",
       pdfCanvas: "",
       copyCanvas: "",
-      drawCanvas: ""
+      drawCanvas: "",
+      canvasWidth: 840,
+      canvasHeight: 600,
+      traceArray: [],//数组代表当前页执行的所有操作，每个元素代表执行的每一步操作
+      tolArray: [],//数组代表所有页执行的所有操作，每个元素代表第n页执行的所欲操作，每个元素由traceArray组成
+      indexArray: [],//数组代表当前页执行的步数，每个元素代表当前页执行的第几步
+      index: 0,
+      canDraw:false,
+      pageNum: 1
     }
   },
   methods: {
@@ -156,27 +164,76 @@ export default {
             self.connection.leave();
         }
     },
-    draw_graph(graphType, obj) {
+
+
+     saveTrace(){
+       const self = this;
+        self.traceArray[self.index] = self.traceStr;//traceStr代表每一次划线动作，traceArray代表当前页做的所有动作语句
+        self.index++;
+        self.indexArray[self.pageNum - 1] = self.index;//indexArray代表第self.pageNum 页画了多少步。除了pdf文件，该数组仅一个元素代表当前页执行了多少步，等同于index
+        self.tolArray[self.pageNum - 1] = self.traceArray;//tolArray代表第pageNum页上所有画图动作语句。除了pdf文件，该数组仅一个元素代表当前页执行的所有动作，等同于traceArray
+    },
+    jumpPageInitial(){
       const self = this;
+        if(CURRENT_FILE_TYPE_ON_CANVAS === 'PDF')
+        {
+            //canDraw = true;
+            //pdf文件翻转到下一页的分情况处理，到下一页是index初始化为0
+            if (!self.indexArray[self.pageNum - 1] )
+            {   self.index = 0;
+                self.traceArray = [];
+            } else
+            {
+                self.index = self.indexArray[self.pageNum - 1];
+                self.traceArray = self.tolArray[self.pageNum - 1];
+                if (self.index != traceArray.length) {
+                    for (var j = self.index; j < traceArray.length; j++)
+                        self.traceArray[j] = "";
+                }
+            }
+        }
+    },
+    clearContext (type, obj) {
+      const self = this;
+        if (!type) {
+            self.drawContext.clearRect(0, 0, self.canvasWidth, self.canvasHeight);
+        } else {
+            self.drawContext.clearRect(0, 0, self.canvasWidth, self.canvasHeight);
+            self.copyContext.clearRect(0, 0, self.canvasWidth, self.canvasHeight);
+            self.connection.send({
+                isMessage: true,
+                clearDraw: true
+            });
+            self.traceStr = "";
+            self.indexArray[self.pageNum - 1] = self.index = 0;
+            self.traceArray = [];
+            self.tolArray[self.pageNum - 1] = self.traceArray;
+            self.$(obj).siblings('span').removeClass("border_choose");
+        }
+    },
+    draw_graph(graphType) {
+      const self = this;
+      var size = 1;
+      var color = "#FF0000";
+
         self.$("#viewFront").css("z-index", "8");
-        var canDraw = false;
+
         var startX;
         var startY;
         self.traceStr = "";
+        chooseImg(graphType);
         var mousedown = function (e) {
             preScale = scale;
             self.drawContext.strokeStyle = color;
             self.drawContext.lineWidth = size;
             e = e || window.event;
-            canDraw = true;
+            self.canDraw = true;
             startX = e.offsetX;
             startY = e.offsetY;
 
             if (graphType == 'pencil') {
-
-                self.traceStr  = "copyContext.beginPath();";
-                self.traceStr  += "copyContext.moveTo(" + startX/preScale+"*scale"+ "," + startY/preScale+"*scale" + ");";
-
+                // self.traceStr  = "this.copyContext.beginPath();";
+                // self.traceStr  += "this.copyContext.moveTo(" + startX/preScale+"*scale"+ "," + startY/preScale+"*scale" + ");";
                 self.drawContext.beginPath();
                 self.drawContext.moveTo(startX/preScale+"*scale", startY/preScale+"*scale");
 
@@ -187,7 +244,7 @@ export default {
                 self.copyContext.lineWidth = size;
             } else if (graphType == 'rubber') {
                 self.copyContext.clearRect(startX - size * 10, startY - size * 10, size * 20, size * 20);
-                self.traceStr  += "copyContext.clearRect(" + startX/preScale+"*scale" + "-" + size + "*10," + startY + "-" + size + "*10," + size + "*20," + size + "*20);";
+                self.traceStr  += "this.copyContext.clearRect(" + startX/preScale+"*scale" + "-" + size + "*10," + startY + "-" + size + "*10," + size + "*20," + size + "*20);";
             }
         }
 
@@ -196,9 +253,9 @@ export default {
             var y = e.offsetY;
 
             if (graphType == 'square') {
-                if (canDraw) {
+                if (self.canDraw) {
                     self.drawContext.beginPath();
-                    clearContext();
+                    self.clearContext();
                     self.drawContext.moveTo(startX, startY);
 
                     self.drawContext.lineTo(x, startY);
@@ -209,43 +266,43 @@ export default {
                     self.drawContext.stroke();
 
                     self.traceStr  =
-                        "clearContext();" +
-                        " copyContext.beginPath();" +
-                        "copyContext.moveTo(" + startX/preScale+"*scale" + "," + startY/preScale+"*scale" + ");" +
-                        "copyContext.lineTo(" + x/preScale+"*scale" + "," + startY/preScale+"*scale" + ");" +
-                        "copyContext.lineTo(" + x/preScale+"*scale" + "," + y/preScale+"*scale" + ");" +
-                        "copyContext.lineTo(" + startX/preScale+"*scale" + "," + y/preScale+"*scale" + ");" +
-                        "copyContext.lineTo(" + startX/preScale+"*scale" + "," + startY/preScale+"*scale" + ");" +
-                        "copyContext.stroke();";
+                        "this.clearContext();" +
+                        "this.copyContext.beginPath();" +
+                        "this.copyContext.moveTo(" + startX/preScale+"*scale" + "," + startY/preScale+"*scale" + ");" +
+                        "this.copyContext.lineTo(" + x/preScale+"*scale" + "," + startY/preScale+"*scale" + ");" +
+                        "this.copyContext.lineTo(" + x/preScale+"*scale" + "," + y/preScale+"*scale" + ");" +
+                        "this.copyContext.lineTo(" + startX/preScale+"*scale" + "," + y/preScale+"*scale" + ");" +
+                        "this.copyContext.lineTo(" + startX/preScale+"*scale" + "," + startY/preScale+"*scale" + ");" +
+                        "this.copyContext.stroke();";
                 }
             } else if (graphType == 'line') {
-                if (canDraw) {
-                    clearContext();
+                if (self.canDraw) {
+                    self.clearContext();
                     self.drawContext.beginPath();
                     self.drawContext.moveTo(startX, startY);
                     self.drawContext.lineTo(x, y);
                     self.drawContext.stroke();
 
                     self.traceStr  =
-                        " clearContext();" +
-                        "copyContext.beginPath();" +
-                        "copyContext.moveTo(" + startX/preScale+"*scale" + "," + startY/preScale+"*scale" + ");" +
-                        "copyContext.lineTo(" + x/preScale+"*scale" + "," + y/preScale+"*scale" + ");" +
-                        "copyContext.stroke();"
+                        "this.clearContext();" +
+                        "this.copyContext.beginPath();" +
+                        "this.copyContext.moveTo(" + startX/preScale+"*scale" + "," + startY/preScale+"*scale" + ");" +
+                        "this.copyContext.lineTo(" + x/preScale+"*scale" + "," + y/preScale+"*scale" + ");" +
+                        "this.copyContext.stroke();"
 
                 }
             } else if (graphType == 'pencil') {
-                if (canDraw) {
+                if (self.canDraw) {
                     //console.log("pencil x,y");
                     //console.log(x+","+y);
                     self.drawContext.lineTo(x, y);
                     self.drawContext.stroke();
-                    self.traceStr  += "copyContext.lineTo(" + x/preScale+"*scale" + "," + y/preScale+"*scale" + ");";
-                    self.traceStr  += "copyContext.stroke();";
+                    self.traceStr  += "this.copyContext.lineTo(" + x/preScale+"*scale" + "," + y/preScale+"*scale" + ");";
+                    self.traceStr  += "this.copyContext.stroke();";
 
                 }
             } else if (graphType == 'rubber') {
-                clearContext();
+                self.clearContext();
                 self.drawContext.lineWidth = 1;
                 self.drawContext.beginPath();
                 self.drawContext.strokeStyle = "#000000";
@@ -255,9 +312,9 @@ export default {
                 self.drawContext.lineTo(x - size * 10, y + size * 10);
                 self.drawContext.lineTo(x - size * 10, y - size * 10);
                 self.drawContext.stroke();
-                if (canDraw) {
+                if (self.canDraw) {
                     self.drawContext.clearRect(x - size * 10, y - size * 10, size * 20, size * 20);
-                    self.traceStr  += "copyContext.clearRect(" + x/preScale+"*scale" + "-" + "size * 10," + y + " -" + " size * 10, size * 20, size * 20);";
+                    self.traceStr  += "this.copyContext.clearRect(" + x/preScale+"*scale" + "-" + "size * 10," + y + " -" + " size * 10, size * 20, size * 20);";
 
                 }
 
@@ -266,30 +323,18 @@ export default {
 
         var mouseup = function (e) {
             e = e || window.event;
+            self.drawContext.lineWidth = 1;
 
-            self.traceStr  = "copyContext.strokeStyle = \'" + color + "\';" + "copyContext.lineWidth = " + size + ";" + self.traceStr ;
+            self.canDraw = false;
 
-            canDraw = false;
-
-            /*不考虑撤销操作：20170703miaolijuan
-            copyContext.clearRect(0, 0, copyCanvas.width, copyCanvas.height);
-            traceArray[index] = self.traceStr ;
-            index++;
-            for (var i = 0; i < index; i++) {
-                eval(traceArray[i]);
-
-            }*/
-           eval(traceStr);
-
-            //saveTrace();
+           eval(self.traceStr);
 
             console.log("sendtest...");
-            connection.send({
+            self.connection.send({
                     isMessage: true,
                     toRun: true,
                     data: traceStr
                 });
-            //traceStr = "";
         };
 
         var mouseover = function () {
@@ -297,9 +342,9 @@ export default {
         }
 
         //选择功能按钮 修改样式
-        function chooseImg(obj) {
-            self.$(obj).addClass("border_choose");
-            self.$(obj).siblings('span').removeClass("border_choose");
+        function chooseImg(objName) {
+            self.$("#" + objName).addClass("border_choose");
+            self.$("#" + objName).siblings('span').removeClass("border_choose");
 
         }
 
@@ -366,13 +411,13 @@ export default {
                   var receivetraceStr  = event.data.data;
                   eval(receivetraceStr);
                   self.traceStr = receivetraceStr;
-                  saveTrace();
+                  self.saveTrace();
               }else if(event.data.clearDraw){
                   self.drawContext.clearRect(0, 0, canvasWidth, canvasHeight);
                   self.copyContext.clearRect(0, 0, canvasWidth, canvasHeight);
-                  indexArray[pageNum - 1] = index = 0;
+                  indexArray[self.pageNum - 1] = self.index = 0;
                   traceArray = [];
-                  tolArray[pageNum - 1] = traceArray;
+                  tolArray[self.pageNum - 1] = traceArray;
               }else if(event.data.fileOperate == 'NextPage'){
                   console.log("next page...");
                   NextPage();
@@ -443,20 +488,16 @@ export default {
 
   },
   mounted(){
+    const self = this;
     self.pdfCanvas = document.getElementById("viewBack");
     self.pdfContext = self.pdfCanvas.getContext("2d");
+    console.log(self.pdfContext);
+    console.log(self.pdfCanvas);
     self.copyCanvas = document.getElementById("viewMiddle");
     self.copyContext = self.copyCanvas.getContext("2d");
     self.drawCanvas = document.getElementById("viewFront");
     self.drawContext = self.drawCanvas.getContext("2d");
-    var traceArray = new Array();//数组代表当前页执行的所有操作，每个元素代表执行的每一步操作
-    var tolArray = new Array();//数组代表所有页执行的所有操作，每个元素代表第n页执行的所欲操作，每个元素由traceArray组成
-    var indexArray = new Array();//数组代表当前页执行的步数，每个元素代表当前页执行的第几步
-    var size = 1;
-    var color = "#FF0000";
-    var canvasWidth = 840;
-    var canvasHeight = 600;
-    var index = 0;
+
   }
 }
 </script>
