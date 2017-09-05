@@ -86,7 +86,7 @@
         <input v-model="chat" id="input-text-chat" placeholder="请输入内容" v-on:keyup.enter="sendMsg" />
         <!-- <input type="text" id="input-text-chat" style="height:40px;width:90%;border:1px solid #39c;font-size:20px;color:deeppink;background:rgba(0,0,0,0.1);margin-top:10px;border-radius: 10px;" placeholder="Enter Text Chat" disabled> -->
         <div class="chat-output" style="line-height: 24px;font-size:20px;color:#000;background:#39c;">
-          <div v-for="(chats, index) in allChat" class="chatList">{{ chats }}</div>
+          <div v-for="(oneChat, index) in allChat" :key="index" class="chatList">{{ oneChat }}</div>
         </div>
       </div>
 
