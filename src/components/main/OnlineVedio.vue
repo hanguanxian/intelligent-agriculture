@@ -63,11 +63,11 @@
             <span @click="draw_graph('line');" id="line" class="marginTop"><img src="../../../static/images/vedio/tools_line.png"  ></span>
             <span @click="draw_graph('rubber')" id="rubber" class="marginTop"><img src="../../../static/images/vedio/tools_ruber.png" /></span>
             <span @click="clearContext('1')" id=""><img src="../../../static/images/vedio/tools_lajitong.png"  ></span>
-            <span id="show-file"><img src="../../../static/images/vedio/tools_showfile.png" ></span>
-            <span id="pre-page"><img src="../../../static/images/vedio/tools_pre_page.png" ></span>
-            <span id="next-page"><img src="../../../static/images/vedio/tools_next_page.png" ></span>
-            <span id="zoom-out"><img src="../../../static/images/vedio/tools_zoomout.png" ></span>
-            <span id="zoom-in"><img src="../../../static/images/vedio/tools_zoom_in.png" ></span>
+            <span id="show-file" @click="showFile"><img src="../../../static/images/vedio/tools_showfile.png" ></span>
+            <span id="pre-page" @click="prePage"><img src="../../../static/images/vedio/tools_pre_page.png" ></span>
+            <span id="next-page" @click="nextPage"><img src="../../../static/images/vedio/tools_next_page.png" ></span>
+            <span id="zoom-out" @click="zoomOut"><img src="../../../static/images/vedio/tools_zoomout.png" ></span>
+            <span id="zoom-in" @click="zoomIn"><img src="../../../static/images/vedio/tools_zoom_in.png" ></span>
           </div>
           <div id="board" style="border-radius: 0 10px 10px 10px;margin-top: 0px;border-top: 1px solid rgba(0,0,0,0.05);">
             <div id="canvasContainer" width="840" height="600" style="overflow:auto;background: #FFFFFF">
@@ -122,6 +122,16 @@ export default {
       index: 0,
       color: "#000",
       canDraw: false,
+      currentFileType: "",
+      pageRendering: false,
+      pdfDoc: null,
+      pageNumPending: null,
+      fileOnCanvasUrl: "",
+      canvasDefaultWidth: 840,
+      canvasDefaultHeight: 600,
+      scale: 1,
+      preScale: 1,
+      scaleGap:0.1,
       pageNum: 1
     }
   },
@@ -142,6 +152,169 @@ export default {
           self.$message.error(result.msg);
         }
       })
+    },
+    prePage(){
+      const self = this;
+      if (self.pageNum <= 1) {
+          return;
+      }
+      self.pageNum--;
+      self.jumpPageInitial();
+      self.queueRenderPage(self.pageNum);
+    },
+    nextPage(){
+     const self = this;
+     if(self.currentFileType == 'PDF'){
+       if (self.pageNum >= self.pdfDoc.numPages ) {
+           return;
+       }
+       self.pageNum++;
+       self.jumpPageInitial();
+       self.queueRenderPage(self.pageNum);
+         self.connection.send({
+             isMessage: true,
+             fileOperate: 'NextPage'
+         });
+     }
+    },
+    zoomOut(){
+      const self = this;
+      if(self.currentFileType === 'PDF'){
+          self.scale = self.scale + self.scaleGap;
+          self.queueRenderPage(self.pageNum);
+          //drawCurrentTrace();
+      }else if(self.currentFileType === 'IMAGE'){
+          console.log("image zoom out");
+        self.scale = self.scale + self.scaleGap;
+          self.showImage(self.fileOnCanvasUrl);
+          //drawCurrentTrace();由于要等待图片在pdfcanvas绘图好后才能在copyCanvas上画图，否则先在copyCanvas上的绘图会被图片覆盖
+          setTimeout(self.drawCurrentTrace,100);
+      }
+      self.connection.send({
+          isMessage: true,
+          fileOperate: 'ZoomOut'
+      });
+    },
+    zoomIn(){
+      const self = this;
+      if (self.scale <= 0.1) {
+          return;
+      }
+      if(self.currentFileType === 'PDF'){
+          self.scale = self.scale - self.scaleGap;
+          self.queueRenderPage(self.pageNum);
+          //drawCurrentTrace();
+      }else if(self.currentFileType === 'IMAGE'){
+        self.scale = self.scale - self.scaleGap;
+          self.showImage(self.fileOnCanvasUrl);
+          //drawCurrentTrace();由于要等待图片在pdfcanvas绘图好后才能在copyCanvas上画图，否则先在copyCanvas上的绘图会被图片覆盖
+          setTimeout(self.drawCurrentTrace,100);
+      }
+      self.connection.send({
+          isMessage: true,
+          fileOperate: 'ZoomIn'
+      });
+    },
+    showImage(url) {
+      const self = this;
+        var image = new Image();
+        image.src = url;
+        image.onload = function () {
+            //默认情况下，图片小于canvas大小
+            self.pdfCanvas.height = self.canvasDefaultHeight;
+            self.pdfCanvas.width = self.canvasDefaultHeight;
+            if(image.height*self.scale >= self.canvasDefaultHeight)
+            {
+                self.pdfCanvas.height = image.height*self.scale;
+                self.copyCanvas.height = image.height*self.scale;
+                self.drawCanvas.height = image.height*self.scale;
+                self.canvasHeight = image.height*self.scale;
+            }
+            if(image.width*self.scale >= self.canvasDefaultHeight)
+            {
+                self.pdfCanvas.width = image.width*self.scale;
+                self.copyCanvas.width = image.width*self.scale;
+                self.drawCanvas.width = image.width*self.scale;
+                self.canvasWidth = image.width*self.scale;
+            }
+            self.pdfContext.clearRect(0,0,pdfCanvas.width,pdfCanvas.height);
+            self.drawContext.clearRect(0, 0, self.canvasWidth, self.canvasHeight);
+            self.copyContext.clearRect(0, 0, self.canvasWidth, self.canvasHeight);
+            self.pdfContext.drawImage(image,0,0,image.width,image.height,0,0,image.width*self.scale,image.height*self.scale);
+        }
+    },
+    queueRenderPage(num){
+      const self = this;
+      if (self.pageRendering) {
+          self.pageNumPending = num;
+      } else {
+          self.renderPage(num);
+      }
+    },
+    showPDF(url) {
+      const self = this;
+        PDFJS.getDocument(url).then(function (pdfDoc_) {
+            self.pdfDoc = pdfDoc_;
+            self.renderPage(self.pageNum);
+        });
+    },
+    renderPage(num){
+      const self = this;
+      self.pageRendering = true;
+      // Using promise to fetch the page
+      self.pdfDoc.getPage(num).then(function (page) {
+          var viewport = page.getViewport(self.scale);
+          self.pdfCanvas.height = viewport.height;
+          self.pdfCanvas.width = viewport.width;
+          self.copyCanvas.height = viewport.height;
+          self.copyCanvas.width =  viewport.width;
+          self.drawCanvas.height = viewport.height;
+          self.drawCanvas.width =  viewport.width;
+          self.canvasWidth = viewport.width;
+          self.canvasHeight = viewport.height;
+          var renderContext = {
+              canvasContext: pdfContext,
+              viewport: viewport
+          };
+          var renderTask = page.render(renderContext);
+
+          renderTask.promise.then(function () {
+              pageRendering = false;
+              if (self.pageNumPending !== null) {
+                  // New page rendering is pending
+                  self.renderPage(self.pageNumPending);
+                  self.pageNumPending = null;
+              }
+              //对于上一页已经有划线的情况
+              self.drawContext.clearRect(0, 0, self.canvasWidth, self.canvasHeight);
+              self.copyContext.clearRect(0, 0, self.canvasWidth, self.canvasHeight);
+              for (var i = 0; i < index; i++) {
+                  eval(self.traceArray[i]);
+              }
+          });
+      });
+    },
+    showFile() {
+      const self = this;
+        var selectFile = new FileSelector();
+        selectFile.selectSingleFile(function (file) {
+            if (file.type === 'application/pdf') {
+                self.copyContext.clearRect(0, 0, self.canvasWidth, self.canvasHeight);
+                self.scale = 1;
+                self.currentFileType = 'PDF';
+                self.connection.send(file);
+            } else {
+                var re = /^(image)\//;
+                if (re.test(file.type)) {
+                    self.copyContext.clearRect(0, 0, self.canvasWidth, self.canvasHeight);
+                    self.scale = 1;
+                    self.currentFileType = 'IMAGE';
+                    self.connection.send(file);
+                } else {
+                    alert('请选择pdf格式文件或图片,其他格式暂不支持');
+                }
+            }
+        });
     },
     sendMsg() {
       const self = this;
@@ -188,7 +361,7 @@ export default {
     },
     jumpPageInitial() {
       const self = this;
-      if (CURRENT_FILE_TYPE_ON_CANVAS === 'PDF') {
+      if (self.currentFileType === 'PDF') {
         //canDraw = true;
         //pdf文件翻转到下一页的分情况处理，到下一页是index初始化为0
         if (!self.indexArray[self.pageNum - 1]) {
@@ -232,7 +405,7 @@ export default {
       self.traceStr = "";
       chooseImg(graphType);
       var mousedown = function(e) {
-        preScale = scale;
+        self.preScale = self.scale;
         self.drawContext.strokeStyle = self.color;
         self.drawContext.lineWidth = size;
         e = e || window.event;
@@ -241,16 +414,16 @@ export default {
         startY = e.offsetY;
         if (graphType == 'pencil') {
           self.traceStr = "self.copyContext.beginPath();";
-          self.traceStr += "self.copyContext.moveTo(" + startX / preScale + "*scale" + "," + startY / preScale + "*scale" + ");";
+          self.traceStr += "self.copyContext.moveTo(" + startX / self.preScale + "*self.scale" + "," + startY / self.preScale + "*self.scale" + ");";
 
           self.drawContext.beginPath();
-          self.drawContext.moveTo(startX / preScale + "*scale", startY / preScale + "*scale");
+          self.drawContext.moveTo(startX / self.preScale + "*self.scale", startY / self.preScale + "*self.scale");
         } else if (graphType == 'line') {
           self.copyContext.strokeStyle = self.color;
           self.copyContext.lineWidth = size;
         } else if (graphType == 'rubber') {
           self.copyContext.clearRect(startX - size * 10, startY - size * 10, size * 20, size * 20);
-          self.traceStr += "self.copyContext.clearRect(" + startX / preScale + "*scale" + "-" + size + "*10," + startY + "-" + size + "*10," + size + "*20," + size + "*20);";
+          self.traceStr += "self.copyContext.clearRect(" + startX / self.preScale + "*self.scale" + "-" + size + "*10," + startY + "-" + size + "*10," + size + "*20," + size + "*20);";
         }
       }
 
@@ -271,11 +444,11 @@ export default {
             self.traceStr =
               "self.clearContext();" +
               "self.copyContext.beginPath();" +
-              "self.copyContext.moveTo(" + startX / preScale + "*scale" + "," + startY / preScale + "*scale" + ");" +
-              "self.copyContext.lineTo(" + x / preScale + "*scale" + "," + startY / preScale + "*scale" + ");" +
-              "self.copyContext.lineTo(" + x / preScale + "*scale" + "," + y / preScale + "*scale" + ");" +
-              "self.copyContext.lineTo(" + startX / preScale + "*scale" + "," + y / preScale + "*scale" + ");" +
-              "self.copyContext.lineTo(" + startX / preScale + "*scale" + "," + startY / preScale + "*scale" + ");" +
+              "self.copyContext.moveTo(" + startX / self.preScale + "*self.scale" + "," + startY / self.preScale + "*self.scale" + ");" +
+              "self.copyContext.lineTo(" + x / self.preScale + "*self.scale" + "," + startY / self.preScale + "*self.scale" + ");" +
+              "self.copyContext.lineTo(" + x / self.preScale + "*self.scale" + "," + y / self.preScale + "*self.scale" + ");" +
+              "self.copyContext.lineTo(" + startX / self.preScale + "*self.scale" + "," + y / self.preScale + "*self.scale" + ");" +
+              "self.copyContext.lineTo(" + startX / self.preScale + "*self.scale" + "," + startY / self.preScale + "*self.scale" + ");" +
               "self.copyContext.stroke();";
           }
         } else if (graphType == 'line') {
@@ -288,8 +461,8 @@ export default {
             self.traceStr =
               "self.clearContext();" +
               "self.copyContext.beginPath();" +
-              "self.copyContext.moveTo(" + startX / preScale + "*scale" + "," + startY / preScale + "*scale" + ");" +
-              "self.copyContext.lineTo(" + x / preScale + "*scale" + "," + y / preScale + "*scale" + ");" +
+              "self.copyContext.moveTo(" + startX / self.preScale + "*self.scale" + "," + startY / self.preScale + "*self.scale" + ");" +
+              "self.copyContext.lineTo(" + x / self.preScale + "*self.scale" + "," + y / self.preScale + "*self.scale" + ");" +
               "self.copyContext.stroke();"
           }
         } else if (graphType == 'pencil') {
@@ -297,7 +470,7 @@ export default {
             self.clearContext();
             self.drawContext.lineTo(x, y);
             self.drawContext.stroke();
-            self.traceStr += "self.copyContext.lineTo(" + x / preScale + "*scale" + "," + y / preScale + "*scale" + ");";
+            self.traceStr += "self.copyContext.lineTo(" + x / self.preScale + "*self.scale" + "," + y / self.preScale + "*self.scale" + ");";
             self.traceStr += "self.copyContext.stroke();";
           }
         } else if (graphType == 'rubber') {
@@ -313,7 +486,7 @@ export default {
           self.drawContext.stroke();
           if (self.canDraw) {
             self.drawContext.clearRect(x - size * 10, y - size * 10, size * 20, size * 20);
-            self.traceStr += "self.copyContext.clearRect(" + x / preScale + "*scale" + "-" + "size * 10," + y + " -" + " size * 10, size * 20, size * 20);";
+            self.traceStr += "self.copyContext.clearRect(" + x / self.preScale + "*self.scale" + "-" + "size * 10," + y + " -" + " size * 10, size * 20, size * 20);";
           }
 
         }
@@ -323,7 +496,7 @@ export default {
         e = e || window.event;
         self.drawContext.lineWidth = 1;
         self.canDraw = false;
-        console.log(self.traceStr);
+        //console.log(self.traceStr);
         eval(self.traceStr);
         self.connection.send({
           isMessage: true,
@@ -409,40 +582,43 @@ export default {
           self.traceStr = receivetraceStr;
           self.saveTrace();
         } else if (event.data.clearDraw) {
-          self.drawContext.clearRect(0, 0, canvasWidth, canvasHeight);
-          self.copyContext.clearRect(0, 0, canvasWidth, canvasHeight);
+          self.drawContext.clearRect(0, 0, self.canvasHeight, self.canvasHeight);
+          self.copyContext.clearRect(0, 0, self.canvasHeight, self.canvasHeight);
           self.indexArray[self.pageNum - 1] = self.index = 0;
           self.traceArray = [];
           self.tolArray[self.pageNum - 1] = self.traceArray;
         } else if (event.data.fileOperate == 'NextPage') {
           console.log("next page...");
-          NextPage();
+          self.nextPage();
         } else if (event.data.fileOperate == 'PrevPage') {
           console.log("prev page...");
-          PrevPage();
+          self.prePage();
         } else if (event.data.fileOperate == 'ZoomOut') {
-          console.log("zoom out");
-          if (CURRENT_FILE_TYPE_ON_CANVAS === 'PDF') {
-            scale = scale + SCALE_GAP;
-            onPDFZoomOut();
-            //drawCurrentTrace();
-          } else if (CURRENT_FILE_TYPE_ON_CANVAS === 'IMAGE') {
-            console.log("image zoom out");
-            scale = scale + SCALE_GAP;
-            onImageZoomOut();
-            setTimeout(drawCurrentTrace, 100);
+          if(self.currentFileType === 'PDF'){
+              self.scale = self.scale + self.scaleGap;
+              self.queueRenderPage(self.pageNum);
+              //drawCurrentTrace();
+          }else if(self.currentFileType === 'IMAGE'){
+              console.log("image zoom out");
+            self.scale = self.scale + self.scaleGap;
+              self.showImage(self.fileOnCanvasUrl);
+              //drawCurrentTrace();由于要等待图片在pdfcanvas绘图好后才能在copyCanvas上画图，否则先在copyCanvas上的绘图会被图片覆盖
+              setTimeout(self.drawCurrentTrace,100);
           }
         } else if (event.data.fileOperate == 'ZoomIn') {
           console.log("zoom in");
-          if (CURRENT_FILE_TYPE_ON_CANVAS === 'PDF') {
-            scale = scale - SCALE_GAP;
-            onPDFZoomIn();
-            //drawCurrentTrace();
-          } else if (CURRENT_FILE_TYPE_ON_CANVAS === 'IMAGE') {
-            console.log("image zoom in ");
-            scale = scale - SCALE_GAP;
-            onImageZoomIn();
-            setTimeout(drawCurrentTrace, 100);
+          if (self.scale <= 0.1) {
+              return;
+          }
+          if(self.currentFileType === 'PDF'){
+              self.scale = self.scale - self.scaleGap;
+              self.queueRenderPage(self.pageNum);
+              //drawCurrentTrace();
+          }else if(self.currentFileType === 'IMAGE'){
+            self.scale = self.scale - self.scaleGap;
+              self.showImage(self.fileOnCanvasUrl);
+              //drawCurrentTrace();由于要等待图片在pdfcanvas绘图好后才能在copyCanvas上画图，否则先在copyCanvas上的绘图会被图片覆盖
+              setTimeout(self.drawCurrentTrace,100);
           }
         }
       }
